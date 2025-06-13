@@ -13,6 +13,9 @@ import uuid
 from datetime import datetime
 from enum import Enum
 
+# Import Quinn AI components
+from quinn_ai_backend import QuinnRequest, QuinnResponse, QuinnConversation, quinn_processor
+
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
 
