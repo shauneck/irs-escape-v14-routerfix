@@ -1,0 +1,2541 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom';
+import './App.css';
+
+const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
+
+// CourseCard Component
+const CourseCard = ({ course, onCourseClick }) => {
+  return (
+    <div className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+      <div className="relative">
+        <img 
+          src={course.thumbnail_url || "https://images.unsplash.com/photo-1554224155-6726b3ff858f?w=400"}
+          alt={course.title}
+          className="w-full h-48 object-cover"
+        />
+        {course.is_free && (
+          <div className="absolute top-4 left-4">
+            <span className="bg-emerald-500 text-white px-3 py-1 rounded-full text-sm font-bold">
+              FREE
+            </span>
+          </div>
+        )}
+      </div>
+      
+      <div className="p-6">
+        <h3 className="text-xl font-bold text-navy-900 mb-2">{course.title}</h3>
+        <p className="text-gray-600 text-sm mb-4">{course.description}</p>
+        
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-4 text-sm text-gray-500">
+            <span className="flex items-center">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              {course.total_lessons} lessons
+            </span>
+            <span className="flex items-center">
+              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              {course.estimated_hours}h
+            </span>
+          </div>
+        </div>
+        
+        <button 
+          onClick={() => onCourseClick(course)}
+          className="w-full bg-gradient-to-r from-emerald-500 to-emerald-600 text-white py-3 px-6 rounded-lg font-bold hover:shadow-lg transform hover:-translate-y-0.5 transition-all duration-200"
+        >
+          {course.is_free ? 'Start Free Course' : 'View Course'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
+// CourseViewer Component  
+const CourseViewer = ({ course, onBack }) => {
+  const [selectedModule, setSelectedModule] = useState(null);
+
+  const handleModuleClick = (lesson) => {
+    setSelectedModule(lesson);
+  };
+
+  if (selectedModule) {
+    return <ModuleViewer 
+      module={selectedModule} 
+      course={course}
+      onBack={() => setSelectedModule(null)} 
+    />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6">
+          <button 
+            onClick={onBack}
+            className="text-emerald-400 hover:text-emerald-300 mb-6 flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to Courses
+          </button>
+          
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="lg:w-2/3">
+              <h1 className="text-4xl font-bold mb-4">{course.title}</h1>
+              <p className="text-xl text-gray-300 mb-6">{course.description}</p>
+              
+              <div className="flex items-center space-x-6 text-emerald-400">
+                <span className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  {course.total_lessons} Modules
+                </span>
+                <span className="flex items-center">
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  {course.estimated_hours} Hours
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {course.lessons?.map((lesson, index) => (
+            <div 
+              key={lesson.id || index}
+              onClick={() => handleModuleClick(lesson)}
+              className="bg-white rounded-lg shadow-lg p-6 hover:shadow-xl transition-all duration-300 cursor-pointer transform hover:-translate-y-1"
+            >
+              <div className="flex items-center justify-between mb-4">
+                <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-sm font-bold">
+                  Module {index + 1}
+                </span>
+                <span className="bg-navy-100 text-navy-600 px-3 py-1 rounded-full text-sm">
+                  {lesson.duration_minutes}m
+                </span>
+              </div>
+              
+              <h3 className="text-lg font-bold text-navy-900 mb-2">
+                {lesson.title}
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                {lesson.description}
+              </p>
+              
+              <div className="flex items-center justify-between">
+                <span className="text-emerald-600 text-sm font-medium">
+                  +{lesson.xp_available} XP
+                </span>
+                <div className="text-emerald-600">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// ModuleViewer Component (Enhanced with structured formatting)
+const ModuleViewer = ({ module, course, onBack }) => {
+  const [glossaryTerms, setGlossaryTerms] = useState([]);
+  const [userXP, setUserXP] = useState(0);
+
+  useEffect(() => {
+    fetchGlossaryTerms();
+  }, []);
+
+  const fetchGlossaryTerms = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/glossary`);
+      if (response.ok) {
+        const terms = await response.json();
+        setGlossaryTerms(terms);
+      }
+    } catch (error) {
+      console.error('Failed to load glossary terms:', error);
+    }
+  };
+
+  // Extract "What You'll Learn" section from content
+  const extractWhatYoullLearn = (content) => {
+    // First check for HTML formatted What You'll Learn sections
+    const htmlMatch = content?.match(/## What You'll Learn\s*<ul>(.*?)<\/ul>/s);
+    if (htmlMatch) {
+      const listContent = htmlMatch[1];
+      // Extract li items and convert to array
+      const liMatches = listContent.match(/<li>(.*?)<\/li>/gs);
+      if (liMatches) {
+        return liMatches.map(li => {
+          // Remove <li> tags and return content
+          return li.replace(/<\/?li>/g, '').trim();
+        });
+      }
+    }
+    
+    // Fallback to markdown-style bullet points
+    const markdownMatch = content?.match(/## What You'll Learn\s*(.*?)(?=##|\n\n[A-Z]|\Z)/s);
+    if (markdownMatch) {
+      const section = markdownMatch[1].trim();
+      // Extract bullet points
+      const bulletPoints = section.match(/[•\-]\s*(.*?)(?=\n[•\-]|\n\n|\Z)/gs);
+      return bulletPoints?.map(point => point.replace(/^[•\-]\s*/, '').trim()) || [];
+    }
+    
+    return [];
+  };
+
+  // Extract case study information based on module content
+  const getCaseStudyInfo = (moduleTitle, courseType) => {
+    const caseStudies = {
+      // Primer modules
+      primer_1: { client: "Sarah, High-Income W-2", strategy: "Tax lever identification and strategic planning", result: "$45K annual tax reduction" },
+      primer_2: { client: "Michael, Business Owner", strategy: "6-lever optimization framework", result: "$80K in combined savings" },
+      primer_3: { client: "Helen, Tech Executive", strategy: "RSU timing + QOF investment", result: "$96K tax deferral" },
+      primer_4: { client: "Dr. Ben, Medical Professional", strategy: "REPS qualification + STR portfolio", result: "$118K in depreciation offsets" },
+      primer_5: { client: "Lisa, Consultant", strategy: "Entity restructuring + timing optimization", result: "$62K effective tax reduction" },
+      primer_6: { client: "David, Entrepreneur", strategy: "Complete tax escape plan implementation", result: "$180K total annual savings" },
+
+      // W-2 modules
+      w2_1: { client: "Helen, Tech Executive", strategy: "W-2 income mapping and strategic planning", result: "$45K identified savings opportunity" },
+      w2_2: { client: "Helen, Tech Executive", strategy: "QOF investment + material participation rules", result: "$102K capital gains deferral" },
+      w2_3: { client: "Helen, Tech Executive", strategy: "AGI optimization and offset stacking", result: "$38K in active depreciation" },
+      w2_4: { client: "Helen, Tech Executive", strategy: "Entity planning and income repositioning", result: "$67K annual tax reduction" },
+      w2_5: { client: "Helen, Tech Executive", strategy: "Asset location and timing arbitrage", result: "$89K in tax optimization" },
+      w2_6: { client: "Helen, Tech Executive", strategy: "RSU planning window optimization", result: "$102K offset against vested stock" },
+      w2_7: { client: "Helen, Tech Executive", strategy: "Income repositioning and tax efficiency", result: "$0 tax on $300K income" },
+      w2_8: { client: "Helen + Spouse", strategy: "750-hour test and REPS activation", result: "$38K depreciation unlock" },
+      w2_9: { client: "Helen, Tech Executive", strategy: "Complete IRS escape plan execution", result: "$325K total transformation" },
+
+      // Business Owner modules
+      business_0: { client: "High-Income Business Owners", strategy: "Advanced infrastructure expectations setting", result: "$490K annual client savings example" },
+      business_1: { client: "Dr. Ben, Medical Practice", strategy: "MSO structure implementation", result: "$320K annual tax savings" },
+      business_2: { client: "David, Tech Startup", strategy: "QSBS qualification + F-Reorg", result: "$30M in gains excluded at exit" },
+      business_3: { client: "Lauren, Real Estate", strategy: "Deduction stack + cost segregation", result: "$1.1M in accelerated deductions" },
+      business_4: { client: "David, Business Owner", strategy: "Wealth multiplier loop implementation", result: "$300K recurring income, $0 tax" },
+      business_5: { client: "Sarah, Consultant", strategy: "Zero-tax income stack", result: "$0 federal tax on $300K income" },
+      business_6: { client: "Michael, Manufacturing", strategy: "Split-dollar life insurance strategy", result: "$2.5M estate tax protection" },
+      business_7: { client: "Lisa, Tech Executive", strategy: "Co-investment MSO structure", result: "$450K depreciation capture" },
+      business_8: { client: "Robert, Investment Firm", strategy: "Trust multiplication strategy", result: "$3.5M wealth transfer optimization" },
+      business_9: { client: "David, Entrepreneur", strategy: "Strategic compounding + exit planning", result: "$5M+ tax-free wealth acceleration" }
+    };
+
+    const moduleIndex = module.order_index;
+    let key = '';
+    
+    if (courseType === 'primer') key = `primer_${moduleIndex + 1}`;
+    else if (courseType === 'w2') key = `w2_${moduleIndex + 1}`;
+    else if (courseType === 'business') key = `business_${moduleIndex}`;
+
+    return caseStudies[key] || { 
+      client: "Strategic Client", 
+      strategy: "Advanced tax optimization", 
+      result: "Significant tax savings achieved" 
+    };
+  };
+
+  // Get key glossary terms for this module
+  const getModuleKeyTerms = (moduleIndex, courseType) => {
+    const moduleTermMappings = {
+      // Primer modules
+      'primer_0': ['Tax Planning', 'CPA vs Strategist', 'W-2 Income'],
+      'primer_1': ['Entity Type', 'Income Type', 'Timing', 'Asset Location', 'Deduction Strategy', 'Exit Planning'],
+      'primer_2': ['QOF (Qualified Opportunity Fund)', 'REPS (Real Estate Professional Status)', 'Capital Gains'],
+      'primer_3': ['REPS (Real Estate Professional Status)', 'Material Participation', 'STR'],
+      'primer_4': ['Entity Planning', 'Income Shifting', 'Tax Planning'],
+      'primer_5': ['Asset Location', 'Timing Arbitrage', 'Tax Strategy'],
+
+      // W-2 modules
+      'w2_0': ['W-2 Income', 'Tax Planning', 'CPA vs Strategist'],
+      'w2_1': ['QOF (Qualified Opportunity Fund)', 'Bonus Depreciation', 'REPS (Real Estate Professional Status)'],
+      'w2_2': ['AGI', 'Effective Tax Rate', 'Tax Planning'],
+      'w2_3': ['Entity Planning', 'Income Shifting', 'Timing Arbitrage'],
+      'w2_4': ['Asset Location', 'QOF (Qualified Opportunity Fund)', 'Tax Strategy'],
+      'w2_5': ['Tax Timing Arbitrage', 'RSU Planning Window', 'High-Income Threshold'],
+      'w2_6': ['Income Repositioning', 'Tax Efficiency', 'Dollar-Cost Averaging (DCA)'],
+      'w2_7': ['Passive Loss Limitation', '750-Hour Test', 'Audit-Proofing'],
+      'w2_8': ['REPS (Real Estate Professional Status)', 'STR', 'Cost Segregation (Cost Seg)'],
+
+      // Business Owner modules
+      'business_0': ['MSO (Management Services Organization)', 'Entity Planning', 'Tax Planning'],
+      'business_1': ['QSBS (Qualified Small Business Stock)', 'F-Reorg (F Reorganization)', 'Trust Multiplication Strategy'],
+      'business_2': ['Deduction Stack', 'Cost Segregation (Cost Seg)', 'IDC (Intangible Drilling Costs)'],
+      'business_3': ['Wealth Multiplier Loop', 'Strategic Compounding', 'Asset Protection'],
+      'business_4': ['Zero-Tax Income Stack', 'Income Repositioning', 'Tax Efficiency'],
+      'business_5': ['Split-Dollar Life Insurance', 'Loan-Based Premium Funding', 'Estate Tax Exposure'],
+      'business_6': ['Co-Investment (MSO or Trust)', 'Depreciation Recapture', 'Installment Sale'],
+      'business_7': ['Trust Multiplication Strategy', 'Estate Tax Exposure', 'Asset Protection'],
+      'business_8': ['Strategic Compounding', 'Wealth Multiplier Loop', 'Zero-Tax Income Stack']
+    };
+
+    let key = '';
+    if (courseType === 'primer') key = `primer_${moduleIndex}`;
+    else if (courseType === 'w2') key = `w2_${moduleIndex}`;
+    else if (courseType === 'business') key = `business_${moduleIndex}`;
+
+    const termNames = moduleTermMappings[key] || [];
+    return termNames.map(termName => 
+      glossaryTerms.find(term => term.term === termName)
+    ).filter(Boolean);
+  };
+
+  const whatYoullLearn = extractWhatYoullLearn(module.content);
+  const caseStudy = getCaseStudyInfo(module.title, course.type);
+  const keyTerms = getModuleKeyTerms(module.order_index, course.type);
+
+  const handleGlossaryTermClick = async (term) => {
+    try {
+      // Award XP for viewing glossary term
+      await fetch(`${API_BASE_URL}/api/users/xp/glossary`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          user_id: 'default_user',
+          term_id: term.id || term.term
+        })
+      });
+      
+      // Show term details (simplified modal)
+      alert(`${term.term}\n\n${term.plain_english || term.definition}`);
+    } catch (error) {
+      console.error('Failed to award XP:', error);
+    }
+  };
+
+  // Extract summary from module content or generate from title
+  const getSummaryFromContent = (content, title) => {
+    // Try to extract existing summary from content
+    const summaryMatch = content?.match(/<section class="module-summary">.*?<p>\s*(.*?)\s*<\/p>/s);
+    if (summaryMatch) {
+      return summaryMatch[1].trim();
+    }
+    
+    // Generate a basic summary from the title if no existing summary found
+    if (title.includes('Wealth Multiplier Loop')) {
+      return 'This module introduces the systematic wealth-building framework that transforms annual tax savings into long-term passive income through strategic compounding and automated reinvestment systems.';
+    } else if (title.includes('REPS') || title.includes('Real Estate Professional')) {
+      return 'This module covers Real Estate Professional Status qualification and the strategies for eliminating passive loss limitations to unlock unlimited deduction potential against high-income earnings.';
+    } else if (title.includes('Oil & Gas')) {
+      return 'This module explores aggressive yet IRS-sanctioned oil & gas investment strategies, focusing on Intangible Drilling Costs (IDC) for immediate deductions and long-term wealth building.';
+    } else if (title.includes('STR') || title.includes('Short-Term Rental')) {
+      return 'This module demonstrates Short-Term Rental strategies for generating immediate depreciation benefits and active income treatment without requiring Real Estate Professional Status.';
+    } else if (title.includes('Entity') || title.includes('MSO')) {
+      return 'This module introduces advanced entity structuring using C-Corp MSO frameworks for optimal income capture, tax rate arbitrage, and systematic business optimization.';
+    } else if (title.includes('Exit Plan')) {
+      return 'This module presents the comprehensive integration of all tax strategies into a complete wealth-building and lifestyle design framework for long-term financial freedom.';
+    } else {
+      return `This module provides strategic insights and actionable frameworks for ${title.toLowerCase().replace(/module \d+:?\s*/i, '')}, helping you optimize your tax situation and build long-term wealth.`;
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Module Header */}
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-8">
+        <div className="container mx-auto px-6">
+          <button 
+            onClick={onBack}
+            className="text-emerald-400 hover:text-emerald-300 mb-4 flex items-center"
+          >
+            <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            Back to {course.title}
+          </button>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold mb-2">{module.title}</h1>
+              <p className="text-emerald-300">{module.description}</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <span className="bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-sm font-bold">
+                Module {module.order_index + 1}
+              </span>
+              <span className="bg-navy-100 text-navy-600 px-3 py-1 rounded-full text-sm">
+                {module.duration_minutes}m
+              </span>
+              <span className="bg-yellow-100 text-yellow-600 px-3 py-1 rounded-full text-sm font-bold">
+                +{module.xp_available} XP
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-8">
+        {/* What You'll Learn Section - Top of Page */}
+        {whatYoullLearn.length > 0 && (
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
+            <h2 className="text-2xl font-bold text-emerald-800 mb-4 flex items-center">
+              <svg className="w-6 h-6 text-emerald-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+              </svg>
+              What You'll Learn
+            </h2>
+            <ul className="space-y-3">
+              {whatYoullLearn.map((point, index) => (
+                <li key={index} className="flex items-start">
+                  <svg className="w-5 h-5 text-emerald-600 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-emerald-800 leading-relaxed" dangerouslySetInnerHTML={{ __html: point }} />
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Content - Video and Summary */}
+          <div className="lg:col-span-2">
+            {/* Video Player */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <div className="aspect-video bg-gradient-to-br from-navy-900 to-emerald-900 rounded-lg flex items-center justify-center">
+                <div className="text-center text-white">
+                  <svg className="w-16 h-16 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+                  <p className="text-lg font-medium">Module Video Content</p>
+                  <p className="text-emerald-300">{module.duration_minutes} minutes</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Section - Bottom of Main Content */}
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
+              <h2 className="text-xl font-bold text-navy-900 mb-4">Summary</h2>
+              <p className="text-gray-700 leading-relaxed">
+                {getSummaryFromContent(module.content, module.title)}
+              </p>
+            </div>
+          </div>
+
+          {/* Sidebar - Case Study above Key Terms */}
+          <div className="lg:col-span-1">
+            {/* Case Study Block */}
+            <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
+              <h3 className="text-xl font-bold text-navy-900 mb-4 flex items-center">
+                <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Case Study
+              </h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <span className="inline-block bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-sm font-medium mb-2">
+                    CLIENT
+                  </span>
+                  <p className="font-semibold text-navy-900">{caseStudy.client}</p>
+                </div>
+                
+                <div>
+                  <span className="inline-block bg-blue-100 text-blue-600 px-2 py-1 rounded text-sm font-medium mb-2">
+                    STRATEGY
+                  </span>
+                  <p className="text-gray-700">{caseStudy.strategy}</p>
+                </div>
+                
+                <div>
+                  <span className="inline-block bg-yellow-100 text-yellow-600 px-2 py-1 rounded text-sm font-medium mb-2">
+                    RESULT
+                  </span>
+                  <p className="font-semibold text-navy-900">{caseStudy.result}</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Key Terms Section - Below Case Study */}
+            {keyTerms.length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-xl font-bold text-navy-900 mb-4 flex items-center">
+                  <svg className="w-5 h-5 text-emerald-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                  </svg>
+                  Key Terms
+                </h3>
+                
+                <div className="space-y-2">
+                  {keyTerms.map((term, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleGlossaryTermClick(term)}
+                      className="w-full text-left bg-emerald-50 hover:bg-emerald-100 text-emerald-700 px-3 py-2 rounded-lg transition-colors duration-200 flex items-center justify-between"
+                    >
+                      <span className="font-medium">{term.term}</span>
+                      <span className="text-xs bg-emerald-200 text-emerald-600 px-2 py-1 rounded">
+                        +10 XP
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                
+                <p className="text-xs text-gray-500 mt-3">
+                  Click any term to view definition and earn XP
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// GlossarySection Component
+const GlossarySection = ({ glossaryTerms }) => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedTerm, setSelectedTerm] = useState(null);
+
+  const categories = ['all', ...new Set(glossaryTerms?.map(term => term.category) || [])];
+  
+  const filteredTerms = glossaryTerms?.filter(term => {
+    const matchesSearch = term.term.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         term.definition?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === 'all' || term.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  }) || [];
+
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      {/* Search and Filter Controls */}
+      <div className="mb-6">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <input
+              type="text"
+              placeholder="Search terms..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            />
+          </div>
+          <div className="sm:w-48">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+            >
+              {categories.map(category => (
+                <option key={category} value={category}>
+                  {category === 'all' ? 'All Categories' : category}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* Results Summary */}
+      <div className="mb-4">
+        <p className="text-gray-600">
+          Showing {filteredTerms.length} of {glossaryTerms?.length || 0} terms
+        </p>
+      </div>
+
+      {/* Terms Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredTerms.map((term, index) => (
+          <div 
+            key={term.id || index}
+            onClick={() => setSelectedTerm(term)}
+            className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 cursor-pointer transition-colors duration-200"
+          >
+            <h3 className="font-bold text-navy-900 mb-2">{term.term}</h3>
+            <span className="inline-block bg-emerald-100 text-emerald-600 px-2 py-1 rounded text-xs font-medium mb-2">
+              {term.category}
+            </span>
+            <p className="text-gray-600 text-sm line-clamp-3">
+              {term.plain_english || term.definition}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* No Results */}
+      {filteredTerms.length === 0 && (
+        <div className="text-center py-8">
+          <p className="text-gray-500">No terms found matching your criteria.</p>
+        </div>
+      )}
+
+      {/* Term Detail Modal */}
+      {selectedTerm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-96 overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-start mb-4">
+                <h2 className="text-2xl font-bold text-navy-900">{selectedTerm.term}</h2>
+                <button 
+                  onClick={() => setSelectedTerm(null)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              
+              <span className="inline-block bg-emerald-100 text-emerald-600 px-3 py-1 rounded-full text-sm font-medium mb-4">
+                {selectedTerm.category}
+              </span>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-bold text-gray-900 mb-2">Definition</h3>
+                  <p className="text-gray-700">{selectedTerm.definition}</p>
+                </div>
+                
+                {selectedTerm.plain_english && (
+                  <div>
+                    <h3 className="font-bold text-gray-900 mb-2">Plain English</h3>
+                    <p className="text-gray-700">{selectedTerm.plain_english}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+  // AI Playbook Generator Component
+  const PlaybookGenerator = ({ onClose, userSubscription }) => {
+    const [formData, setFormData] = useState({
+      entityType: '',
+      incomeRange: '',
+      realEstate: '',
+      assetProtection: '',
+      estatePlanning: '',
+      goals: ''
+    });
+    const [isGenerating, setIsGenerating] = useState(false);
+    const [generatedPlaybook, setGeneratedPlaybook] = useState(null);
+
+    const handleInputChange = (field, value) => {
+      setFormData(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    };
+
+    const generatePlaybook = async () => {
+      setIsGenerating(true);
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      const playbook = createCustomPlaybook(formData);
+      setGeneratedPlaybook(playbook);
+      setIsGenerating(false);
+    };
+
+    const createCustomPlaybook = (data) => {
+      const strategies = {
+        setup: [],
+        deduct: [],
+        protect: [],
+        exit: []
+      };
+
+      // Setup strategies based on entity type and complexity
+      if (data.entityType === 'Business Owner' || data.entityType === 'Mixed') {
+        if (data.incomeRange === '$500K–$1M' || data.incomeRange === '$1M+') {
+          strategies.setup.push({
+            title: 'C-Corp MSO Structure',
+            summary: 'Implement Management Services Organization for optimal income capture at 21% corporate rate vs 37%+ personal rates.',
+            complexity: 'Advanced',
+            module: 'Business Module 1: Entity Structuring'
+          });
+        }
+        
+        strategies.setup.push({
+          title: 'Entity Optimization',
+          summary: 'Restructure business entities for tax efficiency and deduction maximization.',
+          complexity: data.incomeRange === '$1M+' ? 'Advanced' : 'Intermediate',
+          module: 'Business Owner Escape Plan'
+        });
+      }
+
+      if (data.realEstate === 'Active investor with REPS') {
+        strategies.setup.push({
+          title: 'REPS Qualification Maintenance',
+          summary: 'Systematic documentation and hour tracking for Real Estate Professional Status to unlock unlimited deductions.',
+          complexity: 'Advanced',
+          module: 'W-2 Module 4: Qualifying for REPS'
+        });
+      } else if (data.realEstate === 'Own rentals (LTR or STR)') {
+        strategies.setup.push({
+          title: 'REPS Qualification Strategy',
+          summary: 'Path to qualifying for Real Estate Professional Status using the 750-hour test and material participation.',
+          complexity: 'Intermediate',
+          module: 'W-2 Module 4: Qualifying for REPS'
+        });
+      }
+
+      // Deduction strategies
+      if (data.realEstate !== 'No') {
+        strategies.deduct.push({
+          title: 'Cost Segregation Analysis',
+          summary: 'Accelerate depreciation through cost segregation studies for immediate tax benefits.',
+          complexity: 'Intermediate',
+          module: 'Business Module 2: Strategic Deductions'
+        });
+
+        if (data.realEstate === 'Own rentals (LTR or STR)') {
+          strategies.deduct.push({
+            title: 'STR Depreciation Strategy',
+            summary: 'Leverage Short-Term Rental depreciation for immediate W-2 income offset without REPS qualification.',
+            complexity: 'Beginner',
+            module: 'W-2 Module 6: Short-Term Rentals'
+          });
+        }
+      }
+
+      if (data.incomeRange === '$500K–$1M' || data.incomeRange === '$1M+') {
+        strategies.deduct.push({
+          title: 'Oil & Gas IDC Strategy',
+          summary: 'Intangible Drilling Costs for immediate 100% deduction plus ongoing depletion benefits.',
+          complexity: 'Advanced',
+          module: 'W-2 Module 7: Oil & Gas Deductions'
+        });
+
+        strategies.deduct.push({
+          title: 'Bonus Depreciation Stacking',
+          summary: 'Coordinate multiple depreciation strategies for maximum deduction acceleration.',
+          complexity: 'Advanced',
+          module: 'Business Module 2: Strategic Deductions'
+        });
+      }
+
+      // Protection strategies
+      if (data.assetProtection === 'Already have some trusts or structures' || 
+          data.assetProtection === 'Interested in MSO/Trust setup') {
+        
+        strategies.protect.push({
+          title: 'Advanced Trust Multiplication',
+          summary: 'Multi-generational wealth transfer and estate tax optimization through sophisticated trust structures.',
+          complexity: 'Advanced',
+          module: 'Business Module 8: The Exit Plan'
+        });
+
+        if (data.incomeRange === '$1M+') {
+          strategies.protect.push({
+            title: 'Split-Dollar Life Insurance',
+            summary: 'Tax-efficient wealth transfer and protection using loan-based premium funding.',
+            complexity: 'Advanced',
+            module: 'Business Module 6: Capital Gains Repositioning'
+          });
+        }
+      }
+
+      // Exit strategies
+      if (data.estatePlanning === 'Need help soon (1–3 yrs)' || 
+          data.estatePlanning === 'Already thinking about legacy/gifting') {
+        
+        if (data.entityType === 'Business Owner' || data.entityType === 'Mixed') {
+          strategies.exit.push({
+            title: 'QSBS Qualification',
+            summary: 'Qualify for $10M+ capital gains exclusion through Qualified Small Business Stock strategies.',
+            complexity: 'Advanced',
+            module: 'Business Module 3: Long-Term Wealth Creation'
+          });
+        }
+
+        strategies.exit.push({
+          title: 'QOF Strategy',
+          summary: 'Defer capital gains through Qualified Opportunity Fund investments with long-term benefits.',
+          complexity: 'Intermediate',
+          module: 'W-2 Module 2: Repositioning W-2 Income'
+        });
+
+        if (data.incomeRange === '$1M+') {
+          strategies.exit.push({
+            title: 'Charitable Remainder Trust',
+            summary: 'Tax-efficient exit strategy combining philanthropy with income generation and tax benefits.',
+            complexity: 'Advanced',
+            module: 'Business Module 8: The Exit Plan'
+          });
+        }
+      }
+
+      // Add Wealth Multiplier Loop for higher income brackets
+      if (data.incomeRange === '$500K–$1M' || data.incomeRange === '$1M+') {
+        strategies.exit.push({
+          title: 'Wealth Multiplier Loop',
+          summary: 'Systematic reinvestment of tax savings into compounding wealth-building assets.',
+          complexity: 'Advanced',
+          module: 'W-2 Module 8: The Wealth Multiplier Loop'
+        });
+      }
+
+      return {
+        profile: {
+          entityType: data.entityType,
+          incomeRange: data.incomeRange,
+          complexity: determineComplexity(data)
+        },
+        strategies,
+        totalStrategies: Object.values(strategies).flat().length
+      };
+    };
+
+    const determineComplexity = (data) => {
+      let complexityScore = 0;
+      
+      if (data.entityType === 'Business Owner' || data.entityType === 'Mixed') complexityScore += 2;
+      if (data.incomeRange === '$1M+') complexityScore += 3;
+      else if (data.incomeRange === '$500K–$1M') complexityScore += 2;
+      else if (data.incomeRange === '$200K–$500K') complexityScore += 1;
+      
+      if (data.realEstate === 'Active investor with REPS') complexityScore += 3;
+      else if (data.realEstate === 'Own rentals (LTR or STR)') complexityScore += 1;
+      
+      if (data.assetProtection === 'Already have some trusts or structures') complexityScore += 2;
+      else if (data.assetProtection === 'Interested in MSO/Trust setup') complexityScore += 1;
+      
+      if (data.estatePlanning === 'Already thinking about legacy/gifting') complexityScore += 2;
+      else if (data.estatePlanning === 'Need help soon (1–3 yrs)') complexityScore += 1;
+
+      if (complexityScore >= 8) return 'Advanced';
+      if (complexityScore >= 4) return 'Intermediate';
+      return 'Beginner';
+    };
+
+    if (userSubscription === 'free') {
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl max-w-2xl w-full p-8">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+              <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {tools?.map((tool, index) => (
+                  <div key={tool.id || index} className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow duration-300">
+                    <div className="flex items-center mb-4">
+                      <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center mr-4">
+                        <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <h3 className="text-lg font-bold text-navy-900">{tool.name}</h3>
+                        <p className="text-gray-600 text-sm">{tool.category}</p>
+                      </div>
+                    </div>
+                    
+                    <p className="text-gray-700 mb-4">{tool.description}</p>
+                    
+                    <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 px-4 rounded-lg transition-colors duration-200">
+                      Use Tool
+                    </button>
+                  </div>
+                )) || (
+                  <div className="col-span-full text-center py-8">
+                    <p className="text-gray-500">No tools available at this time.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Playbook Results Component
+    const PlaybookResults = ({ playbook, onNewPlaybook }) => {
+      strategies.deduct.push({
+        title: 'Cost Segregation Analysis',
+        summary: 'Accelerate depreciation through cost segregation studies for immediate tax benefits.',
+        complexity: 'Intermediate',
+        module: 'Business Module 2: Strategic Deductions'
+      });
+
+      if (data.realEstate === 'Own rentals (LTR or STR)') {
+        strategies.deduct.push({
+          title: 'STR Depreciation Strategy',
+          summary: 'Leverage Short-Term Rental depreciation for immediate W-2 income offset without REPS qualification.',
+          complexity: 'Beginner',
+          module: 'W-2 Module 6: Short-Term Rentals'
+        });
+      }
+    }
+
+    if (data.incomeRange === '$500K–$1M' || data.incomeRange === '$1M+') {
+      strategies.deduct.push({
+        title: 'Oil & Gas IDC Strategy',
+        summary: 'Intangible Drilling Costs for immediate 100% deduction plus ongoing depletion benefits.',
+        complexity: 'Advanced',
+        module: 'W-2 Module 7: Oil & Gas Deductions'
+      });
+
+      strategies.deduct.push({
+        title: 'Bonus Depreciation Stacking',
+        summary: 'Coordinate multiple depreciation strategies for maximum deduction acceleration.',
+        complexity: 'Advanced',
+        module: 'Business Module 2: Strategic Deductions'
+      });
+    }
+
+    // Protection strategies
+    if (data.assetProtection === 'Already have some trusts or structures' || 
+        data.assetProtection === 'Interested in MSO/Trust setup') {
+      
+      strategies.protect.push({
+        title: 'Advanced Trust Multiplication',
+        summary: 'Multi-generational wealth transfer and estate tax optimization through sophisticated trust structures.',
+        complexity: 'Advanced',
+        module: 'Business Module 8: The Exit Plan'
+      });
+
+      if (data.incomeRange === '$1M+') {
+        strategies.protect.push({
+          title: 'Split-Dollar Life Insurance',
+          summary: 'Tax-efficient wealth transfer and protection using loan-based premium funding.',
+          complexity: 'Advanced',
+          module: 'Business Module 6: Capital Gains Repositioning'
+        });
+      }
+    }
+
+    // Exit strategies
+    if (data.estatePlanning === 'Need help soon (1–3 yrs)' || 
+        data.estatePlanning === 'Already thinking about legacy/gifting') {
+      
+      if (data.entityType === 'Business Owner' || data.entityType === 'Mixed') {
+        strategies.exit.push({
+          title: 'QSBS Qualification',
+          summary: 'Qualify for $10M+ capital gains exclusion through Qualified Small Business Stock strategies.',
+          complexity: 'Advanced',
+          module: 'Business Module 3: Long-Term Wealth Creation'
+        });
+      }
+
+      strategies.exit.push({
+        title: 'QOF Strategy',
+        summary: 'Defer capital gains through Qualified Opportunity Fund investments with long-term benefits.',
+        complexity: 'Intermediate',
+        module: 'W-2 Module 2: Repositioning W-2 Income'
+      });
+
+      if (data.incomeRange === '$1M+') {
+        strategies.exit.push({
+          title: 'Charitable Remainder Trust',
+          summary: 'Tax-efficient exit strategy combining philanthropy with income generation and tax benefits.',
+          complexity: 'Advanced',
+          module: 'Business Module 8: The Exit Plan'
+        });
+      }
+    }
+
+    // Add Wealth Multiplier Loop for higher income brackets
+    if (data.incomeRange === '$500K–$1M' || data.incomeRange === '$1M+') {
+      strategies.exit.push({
+        title: 'Wealth Multiplier Loop',
+        summary: 'Systematic reinvestment of tax savings into compounding wealth-building assets.',
+        complexity: 'Advanced',
+        module: 'W-2 Module 8: The Wealth Multiplier Loop'
+      });
+    }
+
+    return {
+      profile: {
+        entityType: data.entityType,
+        incomeRange: data.incomeRange,
+        complexity: determineComplexity(data)
+      },
+      strategies,
+      totalStrategies: Object.values(strategies).flat().length
+    };
+  };
+
+  const determineComplexity = (data) => {
+    let complexityScore = 0;
+    
+    if (data.entityType === 'Business Owner' || data.entityType === 'Mixed') complexityScore += 2;
+    if (data.incomeRange === '$1M+') complexityScore += 3;
+    else if (data.incomeRange === '$500K–$1M') complexityScore += 2;
+    else if (data.incomeRange === '$200K–$500K') complexityScore += 1;
+    
+    if (data.realEstate === 'Active investor with REPS') complexityScore += 3;
+    else if (data.realEstate === 'Own rentals (LTR or STR)') complexityScore += 1;
+    
+    if (data.assetProtection === 'Already have some trusts or structures') complexityScore += 2;
+    else if (data.assetProtection === 'Interested in MSO/Trust setup') complexityScore += 1;
+    
+    if (data.estatePlanning === 'Already thinking about legacy/gifting') complexityScore += 2;
+    else if (data.estatePlanning === 'Need help soon (1–3 yrs)') complexityScore += 1;
+
+    if (complexityScore >= 8) return 'Advanced';
+    if (complexityScore >= 4) return 'Intermediate';
+    return 'Beginner';
+  };
+
+  const isFormValid = formData.entityType && formData.incomeRange && 
+                     formData.realEstate && formData.assetProtection && 
+                     formData.estatePlanning;
+
+  if (userSubscription === 'free') {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl max-w-2xl w-full p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-navy-900 mb-2">Premium Tool Access Required</h3>
+            <p className="text-gray-600 mb-6">
+              The AI Playbook Generator creates personalized tax strategies based on your profile. 
+              Upgrade to access this advanced planning tool.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/pricing'}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-6 py-3 rounded-lg font-bold"
+            >
+              Upgrade to Premium
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+              <p className="text-gray-600">Build your custom IRS Escape Plan in 60 seconds</p>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6" {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl max-w-2xl w-full p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-navy-900 mb-2">Premium Tool Access Required</h3>
+            <p className="text-gray-600 mb-6">
+              The AI Playbook Generator creates personalized tax strategies based on your profile. 
+              Upgrade to access this advanced planning tool.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/pricing'}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-6 py-3 rounded-lg font-bold"
+            >
+              Upgrade to Premium
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+              <p className="text-gray-600">Build your custom IRS Escape Plan in 60 seconds</p>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          <p className="text-emerald-600 font-medium text-center">
+            Full AI Playbook Generator implementation - Coming soon with complete strategy engine
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (userSubscription === 'free') {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-xl max-w-2xl w-full p-8">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div className="text-center py-8">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <svg className="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <h3 className="text-xl font-bold text-navy-900 mb-2">Premium Tool Access Required</h3>
+            <p className="text-gray-600 mb-6">
+              The AI Playbook Generator creates personalized tax strategies based on your profile. 
+              Upgrade to access this advanced planning tool.
+            </p>
+            <button 
+              onClick={() => window.location.href = '/pricing'}
+              className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-6 py-3 rounded-lg font-bold"
+            >
+              Upgrade to Premium
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+      <div className="bg-white rounded-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6">
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-2xl font-bold text-navy-900">AI Playbook Generator</h2>
+              <p className="text-gray-600">Build your custom IRS Escape Plan in 60 seconds</p>
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div className="p-6">
+          <p className="text-emerald-600 font-medium text-center">
+            Full AI Playbook Generator implementation - Coming soon with complete strategy engine
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+};
+            </div>
+            <button onClick={onClose} className="text-gray-500 hover:text-gray-700">
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="p-6">
+          {!generatedPlaybook ? (
+            <div className="space-y-6">
+              {/* Form Fields */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Entity Type */}
+                <div>
+                  <label className="block text-sm font-bold text-navy-900 mb-3">Entity Type *</label>
+                  <div className="space-y-2">
+                    {['W-2 Earner', 'Business Owner', 'Mixed (e.g., K-1 + salary)'].map(option => (
+                      <label key={option} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="entityType"
+                          value={option}
+                          checked={formData.entityType === option}
+                          onChange={(e) => handleInputChange('entityType', e.target.value)}
+                          className="mr-3"
+                        />
+                        <span className="text-gray-700">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Income Range */}
+                <div>
+                  <label className="block text-sm font-bold text-navy-900 mb-3">Income Range *</label>
+                  <div className="space-y-2">
+                    {['<$200K', '$200K–$500K', '$500K–$1M', '$1M+'].map(option => (
+                      <label key={option} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="incomeRange"
+                          value={option}
+                          checked={formData.incomeRange === option}
+                          onChange={(e) => handleInputChange('incomeRange', e.target.value)}
+                          className="mr-3"
+                        />
+                        <span className="text-gray-700">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Real Estate */}
+                <div>
+                  <label className="block text-sm font-bold text-navy-900 mb-3">Real Estate *</label>
+                  <div className="space-y-2">
+                    {['No', 'Own rentals (LTR or STR)', 'Active investor with REPS'].map(option => (
+                      <label key={option} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="realEstate"
+                          value={option}
+                          checked={formData.realEstate === option}
+                          onChange={(e) => handleInputChange('realEstate', e.target.value)}
+                          className="mr-3"
+                        />
+                        <span className="text-gray-700">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Asset Protection */}
+                <div>
+                  <label className="block text-sm font-bold text-navy-900 mb-3">Asset Protection Status *</label>
+                  <div className="space-y-2">
+                    {['None', 'Interested in MSO/Trust setup', 'Already have some trusts or structures'].map(option => (
+                      <label key={option} className="flex items-center">
+                        <input
+                          type="radio"
+                          name="assetProtection"
+                          value={option}
+                          checked={formData.assetProtection === option}
+                          onChange={(e) => handleInputChange('assetProtection', e.target.value)}
+                          className="mr-3"
+                        />
+                        <span className="text-gray-700">{option}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Estate Planning (full width) */}
+              <div>
+                <label className="block text-sm font-bold text-navy-900 mb-3">Estate Planning / Exit *</label>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {['No plan', 'Need help soon (1–3 yrs)', 'Already thinking about legacy/gifting'].map(option => (
+                    <label key={option} className="flex items-center">
+                      <input
+                        type="radio"
+                        name="estatePlanning"
+                        value={option}
+                        checked={formData.estatePlanning === option}
+                        onChange={(e) => handleInputChange('estatePlanning', e.target.value)}
+                        className="mr-3"
+                      />
+                      <span className="text-gray-700">{option}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Goals */}
+              <div>
+                <label className="block text-sm font-bold text-navy-900 mb-3">Goals or Special Notes (Optional)</label>
+                <textarea
+                  value={formData.goals}
+                  onChange={(e) => handleInputChange('goals', e.target.value)}
+                  placeholder="Tell us about your specific goals, timeline, or unique circumstances..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                  rows={3}
+                />
+              </div>
+
+              {/* Generate Button */}
+              <div className="flex justify-center pt-4">
+                <button
+                  onClick={generatePlaybook}
+                  disabled={!isFormValid || isGenerating}
+                  className={`px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 ${
+                    isFormValid && !isGenerating
+                      ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white hover:shadow-lg'
+                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                  }`}
+                >
+                  {isGenerating ? (
+                    <div className="flex items-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      Generating Your Playbook...
+                    </div>
+                  ) : (
+                    'Generate My Custom Playbook'
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <PlaybookResults playbook={generatedPlaybook} onNewPlaybook={() => setGeneratedPlaybook(null)} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Playbook Results Component
+const PlaybookResults = ({ playbook, onNewPlaybook }) => {
+  const getComplexityColor = (complexity) => {
+    switch (complexity) {
+      case 'Beginner': return 'bg-green-100 text-green-600';
+      case 'Intermediate': return 'bg-yellow-100 text-yellow-600';
+      case 'Advanced': return 'bg-red-100 text-red-600';
+      default: return 'bg-gray-100 text-gray-600';
+    }
+  };
+
+  const strategyCategories = [
+    { key: 'setup', title: 'Setup', icon: '🏗️', description: 'Entity, MSO, Trust, REPS' },
+    { key: 'deduct', title: 'Deduct', icon: '💰', description: 'STR Cost Seg, O&G, Bonus Depreciation' },
+    { key: 'protect', title: 'Protect', icon: '🛡️', description: 'Split-dollar, Trust, PPLI' },
+    { key: 'exit', title: 'Exit', icon: '🚀', description: 'QSBS, QOF, CRT, Installment Sale' }
+  ];
+
+  return (
+    <div className="space-y-6">
+      {/* Profile Summary */}
+      <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 rounded-lg p-6">
+        <h3 className="text-xl font-bold text-navy-900 mb-4">Your Tax Profile</h3>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <span className="text-sm text-emerald-600 font-medium">Entity Type</span>
+            <p className="font-bold text-navy-900">{playbook.profile.entityType}</p>
+          </div>
+          <div>
+            <span className="text-sm text-emerald-600 font-medium">Income Range</span>
+            <p className="font-bold text-navy-900">{playbook.profile.incomeRange}</p>
+          </div>
+          <div>
+            <span className="text-sm text-emerald-600 font-medium">Complexity Level</span>
+            <span className={`inline-block px-3 py-1 rounded-full text-sm font-bold ${getComplexityColor(playbook.profile.complexity)}`}>
+              {playbook.profile.complexity}
+            </span>
+          </div>
+        </div>
+        <div className="mt-4 p-4 bg-white rounded-lg">
+          <p className="text-emerald-700">
+            <strong>{playbook.totalStrategies} strategies identified</strong> for your profile. 
+            This playbook is customized based on your complexity level and current situation.
+          </p>
+        </div>
+      </div>
+
+      {/* Strategy Categories */}
+      {strategyCategories.map(category => (
+        <div key={category.key} className="bg-white border border-gray-200 rounded-lg p-6">
+          <div className="flex items-center mb-4">
+            <span className="text-2xl mr-3">{category.icon}</span>
+            <div>
+              <h4 className="text-xl font-bold text-navy-900">{category.title}</h4>
+              <p className="text-gray-600">{category.description}</p>
+            </div>
+          </div>
+
+          {playbook.strategies[category.key].length > 0 ? (
+            <div className="space-y-4">
+              {playbook.strategies[category.key].map((strategy, index) => (
+                <div key={index} className="bg-gray-50 rounded-lg p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <h5 className="font-bold text-navy-900">{strategy.title}</h5>
+                    <span className={`px-2 py-1 rounded-full text-xs font-bold ${getComplexityColor(strategy.complexity)}`}>
+                      {strategy.complexity}
+                    </span>
+                  </div>
+                  <p className="text-gray-700 mb-3">{strategy.summary}</p>
+                  {strategy.module && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-emerald-600 font-medium">
+                        📎 {strategy.module}
+                      </span>
+                      <button className="text-emerald-600 hover:text-emerald-700 text-sm font-medium">
+                        Add to My Plan →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-8 text-gray-500">
+              <p>No {category.title.toLowerCase()} strategies recommended for your current profile.</p>
+            </div>
+          )}
+        </div>
+      ))}
+
+      {/* Action Buttons */}
+      <div className="flex justify-center space-x-4 pt-6">
+        <button
+          onClick={onNewPlaybook}
+          className="px-6 py-3 border border-emerald-500 text-emerald-600 rounded-lg font-bold hover:bg-emerald-50 transition-colors duration-200"
+        >
+          Generate New Playbook
+        </button>
+        <button className="px-6 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg font-bold transition-colors duration-200">
+          Export My Plan
+        </button>
+      </div>
+    </div>
+  );
+};
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {tools?.map((tool, index) => (
+          <div key={tool.id || index} className="bg-gray-50 rounded-lg p-6 hover:shadow-lg transition-shadow duration-300">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center mr-4">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-navy-900">{tool.name}</h3>
+                <p className="text-gray-600 text-sm">{tool.category}</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-700 mb-4">{tool.description}</p>
+            
+            <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-2 px-4 rounded-lg transition-colors duration-200">
+              Use Tool
+            </button>
+          </div>
+        )) || (
+          <div className="col-span-full text-center py-8">
+            <p className="text-gray-500">No tools available at this time.</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// TaxBotSection Component (Basic implementation)
+const TaxBotSection = () => {
+  const [message, setMessage] = useState('');
+  
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-navy-900 mb-2">AI Tax Strategy Assistant</h2>
+        <p className="text-gray-600">Get personalized tax strategy guidance</p>
+      </div>
+      
+      <div className="space-y-4">
+        <div className="bg-gray-50 rounded-lg p-4 min-h-64">
+          <p className="text-gray-500 text-center">Chat interface will be restored here</p>
+        </div>
+        
+        <div className="flex space-x-2">
+          <input
+            type="text"
+            value={message}
+            onChange={(e) => setMessage(e.target.value)}
+            placeholder="Ask about tax strategies..."
+            className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+          />
+          <button className="bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2 rounded-lg transition-colors duration-200">
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// PremiumToolsSection Component  
+const PremiumToolsSection = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-navy-900 mb-4">Premium Tools</h2>
+        <p className="text-gray-600 mb-6">Advanced tax optimization tools and calculators</p>
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-700">Premium tools require an active subscription</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// MarketplaceSection Component
+const MarketplaceSection = () => {
+  return (
+    <div className="bg-white rounded-lg shadow-lg p-6">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-navy-900 mb-4">Marketplace</h2>
+        <p className="text-gray-600 mb-6">Additional courses and professional services</p>
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <p className="text-blue-700">Coming soon - Additional premium courses and consultations</p>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// New Homepage Component - Escape Blueprint Landing
+const HomePage = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Hero Section */}
+      <section className="bg-gradient-to-br from-navy-900 via-navy-800 to-emerald-900 text-white py-20 relative overflow-hidden">
+        <div className="absolute inset-0 opacity-10">
+          <img 
+            src="https://images.pexels.com/photos/247851/pexels-photo-247851.jpeg" 
+            alt="Freedom from constraints"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="container mx-auto px-6 text-center relative z-10">
+          <h1 className="text-6xl font-bold mb-6">
+            Escape IRS Problems <span className="text-emerald-400">Forever</span>
+          </h1>
+          <p className="text-xl text-gray-300 mb-8 max-w-4xl mx-auto">
+            The IRS Escape Plan is your blueprint to tax-free income, bulletproof asset protection, 
+            and a clean exit — without loopholes or CPA jargon.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <button 
+              onClick={() => navigate('/courses')}
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-xl text-lg font-bold transition-all duration-200 hover:shadow-lg hover:scale-105"
+            >
+              Watch Free Primer
+            </button>
+            <button 
+              onClick={() => navigate('/pricing')}
+              className="border-2 border-emerald-400 text-emerald-400 hover:bg-emerald-400 hover:text-navy-900 px-8 py-4 rounded-xl text-lg font-bold transition-all duration-200"
+            >
+              See Pricing
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 3-Point Value Proposition Section */}
+      <section className="py-16 bg-white">
+        <div className="container mx-auto px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {/* Tax Reduction */}
+            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-emerald-50 to-emerald-100 hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-navy-900 mb-4">Tax Reduction</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Legally reduce your tax burden by 20-50%+ using advanced strategies 
+                that high-income earners and businesses use to keep more of what they earn.
+              </p>
+            </div>
+
+            {/* Income Shifting */}
+            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-blue-100 hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-navy-900 mb-4">Income Shifting</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Transform high-tax W-2 income into lower-tax business and investment income 
+                through strategic entity structures and timing optimization.
+              </p>
+            </div>
+
+            {/* Exit Planning */}
+            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-purple-100 hover:shadow-lg transition-all duration-300">
+              <div className="w-16 h-16 bg-purple-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                </svg>
+              </div>
+              <h3 className="text-2xl font-bold text-navy-900 mb-4">Exit Planning</h3>
+              <p className="text-gray-600 leading-relaxed">
+                Plan your clean exit from tax problems with bulletproof asset protection 
+                and wealth transfer strategies that preserve your legacy.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof Section */}
+      <section className="py-16 bg-gradient-to-r from-navy-900 to-emerald-900">
+        <div className="container mx-auto px-6 text-center">
+          <h2 className="text-3xl font-bold text-white mb-4">
+            Trusted by founders, doctors, and high-income professionals
+          </h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-4xl mx-auto mt-12">
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-400 mb-2">$2.3M+</div>
+              <div className="text-gray-300">Total Tax Savings for Clients</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-400 mb-2">10,000+</div>
+              <div className="text-gray-300">Students Enrolled</div>
+            </div>
+            <div className="text-center">
+              <div className="text-4xl font-bold text-emerald-400 mb-2">98%</div>
+              <div className="text-gray-300">Success Rate</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Video Preview Section */}
+      <section className="py-16 bg-gray-100">
+        <div className="container mx-auto px-6">
+          <div className="max-w-4xl mx-auto text-center">
+            <h2 className="text-4xl font-bold text-navy-900 mb-6">
+              See How the IRS Escape Plan Works
+            </h2>
+            <p className="text-xl text-gray-600 mb-12">
+              Watch this exclusive preview to understand how our proven system helps 
+              high-income earners escape tax problems and build lasting wealth.
+            </p>
+            
+            <div className="relative bg-white rounded-2xl shadow-2xl overflow-hidden hover:shadow-3xl transition-all duration-300">
+              <div className="aspect-video bg-gradient-to-br from-navy-900 to-emerald-900 flex items-center justify-center relative">
+                <img 
+                  src="https://images.unsplash.com/photo-1588196749597-9ff075ee6b5b" 
+                  alt="Video preview"
+                  className="w-full h-full object-cover opacity-30"
+                />
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <button className="bg-emerald-500 hover:bg-emerald-600 rounded-full p-6 shadow-2xl hover:scale-110 transition-all duration-300">
+                    <svg className="w-12 h-12 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </button>
+                </div>
+                <div className="absolute bottom-4 left-4 bg-black bg-opacity-70 text-white px-3 py-1 rounded">
+                  12:34
+                </div>
+              </div>
+              <div className="p-6">
+                <h3 className="text-xl font-bold text-navy-900 mb-2">
+                  "How I Eliminated $180K in Taxes Using the IRS Escape Plan"
+                </h3>
+                <p className="text-gray-600">
+                  Real case study walkthrough with step-by-step implementation
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-12">
+              <button 
+                onClick={() => navigate('/courses')}
+                className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-xl text-lg font-bold transition-all duration-200 hover:shadow-lg mr-4"
+              >
+                Start Your Escape Plan
+              </button>
+              <button 
+                onClick={() => navigate('/pricing')}
+                className="border-2 border-navy-900 text-navy-900 hover:bg-navy-900 hover:text-white px-8 py-4 rounded-xl text-lg font-bold transition-all duration-200"
+              >
+                View Pricing Options
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// Header Component with React Router Navigation
+const Header = () => {
+  const location = useLocation();
+  
+  const isActive = (path) => {
+    if (path === '/' && location.pathname === '/') return true;
+    if (path !== '/' && location.pathname.startsWith(path)) return true;
+    return false;
+  };
+
+  return (
+    <header className="bg-navy-900 text-white shadow-lg sticky top-0 z-50">
+      <div className="container mx-auto px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Link to="/" className="text-2xl font-bold text-emerald-400 hover:text-emerald-300 transition-colors">
+              IRS Escape Plan
+            </Link>
+            <div className="hidden md:block text-sm text-gray-300">
+              Your Path to Tax Freedom
+            </div>
+          </div>
+          
+          <nav className="hidden md:flex space-x-6">
+            <Link
+              to="/"
+              className={`transition-colors duration-200 ${
+                isActive('/')
+                  ? 'text-emerald-400 border-b-2 border-emerald-400'
+                  : 'text-gray-300 hover:text-emerald-400'
+              }`}
+            >
+              Home
+            </Link>
+            <Link
+              to="/courses"
+              className={`transition-colors duration-200 ${
+                isActive('/courses')
+                  ? 'text-emerald-400 border-b-2 border-emerald-400'
+                  : 'text-gray-300 hover:text-emerald-400'
+              }`}
+            >
+              Courses
+            </Link>
+            <Link
+              to="/pricing"
+              className={`transition-colors duration-200 ${
+                isActive('/pricing')
+                  ? 'text-emerald-400 border-b-2 border-emerald-400'
+                  : 'text-gray-300 hover:text-emerald-400'
+              }`}
+            >
+              Pricing
+            </Link>
+            <Link
+              to="/glossary"
+              className={`transition-colors duration-200 ${
+                isActive('/glossary')
+                  ? 'text-emerald-400 border-b-2 border-emerald-400'
+                  : 'text-gray-300 hover:text-emerald-400'
+              }`}
+            >
+              Glossary
+            </Link>
+            <Link
+              to="/tools"
+              className={`transition-colors duration-200 ${
+                isActive('/tools')
+                  ? 'text-emerald-400 border-b-2 border-emerald-400'
+                  : 'text-gray-300 hover:text-emerald-400'
+              }`}
+            >
+              Tools
+            </Link>
+          </nav>
+          
+          <div className="flex items-center space-x-4">
+            <Link 
+              to="/courses"
+              className="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+            >
+              Get Started Free
+            </Link>
+          </div>
+        </div>
+      </div>
+    </header>
+  );
+};
+
+
+// Courses Page Component
+const CoursesPage = () => {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selectedCourse, setSelectedCourse] = useState(null);
+
+  useEffect(() => {
+    fetchCourses();
+  }, []);
+
+  const fetchCourses = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/api/courses`);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch courses: ${response.status}`);
+      }
+      const data = await response.json();
+      setCourses(data);
+    } catch (error) {
+      console.error('Error fetching courses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCourseClick = (course) => {
+    setSelectedCourse(course);
+  };
+
+  const handleBackToCourses = () => {
+    setSelectedCourse(null);
+  };
+
+  if (selectedCourse) {
+    return <CourseViewer course={selectedCourse} onBack={handleBackToCourses} />;
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">Choose Your Learning Path</h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Select the course that matches your situation and start building your tax escape strategy today
+          </p>
+        </div>
+      </div>
+
+      <section className="py-12">
+        <div className="container mx-auto px-6">
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-400 mx-auto mb-4"></div>
+            </div>
+          ) : courses.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {courses.map((course) => (
+                <CourseCard 
+                  key={course.id} 
+                  course={course} 
+                  onCourseClick={handleCourseClick}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-lg text-gray-600">No courses available.</div>
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// Pricing Page Component
+const PricingPage = () => {
+  const plans = [
+    {
+      name: "W-2 Escape Plan",
+      accent: "teal",
+      oneTimePrice: "$997",
+      oneTimeDescription: "one-time course fee",
+      monthlyPrice: "$49/mo",
+      monthlyDescription: "platform subscription",
+      description: "High-income W-2 earners unlock deduction stacking, REPS access, and repositioning strategies.",
+      features: [
+        "Lifetime access to W-2 course modules",
+        "AI Strategy Assistant (TaxBot) for W-2 questions", 
+        "W-2 Offset Planner & REPS Hour Tracker",
+        "Document Analyzer for W-2 & 1040 optimization",
+        "Gamification + XP tracking system",
+        "Mobile dashboard with strategy reminders"
+      ],
+      ctaText: "Start W-2 Plan",
+      gradient: "from-teal-500 to-teal-600",
+      border: "border-teal-200",
+      bg: "bg-teal-50"
+    },
+    {
+      name: "Business Owner Plan", 
+      accent: "yellow",
+      oneTimePrice: "$1,497",
+      oneTimeDescription: "one-time course fee",
+      monthlyPrice: "$49/mo",
+      monthlyDescription: "platform subscription",
+      description: "Entity optimization, MSO design, QBI qualification, and asset-backed exit strategies.",
+      features: [
+        "Lifetime access to Business Owner course",
+        "AI Strategy Assistant (TaxBot) for entity questions",
+        "Cost Segregation ROI & Bonus Depreciation tools",
+        "Playbook Generator for business structures",
+        "Document Analyzer for K-1 & entity returns",
+        "Weekly office hours + advisor chat support"
+      ],
+      ctaText: "Start Business Plan",
+      gradient: "from-yellow-500 to-yellow-600", 
+      border: "border-yellow-200",
+      bg: "bg-yellow-50"
+    },
+    {
+      name: "All Access + AI",
+      accent: "pink", 
+      oneTimePrice: "$1,994",
+      oneTimeDescription: "one-time course bundle",
+      monthlyPrice: "$69/mo",
+      monthlyDescription: "premium subscription",
+      description: "Complete access to both courses, all tools, XP tracking, and your personal AI tax strategist.",
+      features: [
+        "Lifetime access to ALL courses & content",
+        "Full AI Strategy Assistant (TaxBot) - unlimited access", 
+        "Complete strategy simulator suite (Roth, REPS, W-2)",
+        "Advanced Playbook Generator with custom blueprints",
+        "Premium Document Analyzer for all tax forms",
+        "Mobile app + priority advisor chat + office hours"
+      ],
+      ctaText: "Get All Access",
+      gradient: "from-pink-500 to-pink-600",
+      border: "border-pink-200", 
+      bg: "bg-pink-50",
+      popular: true,
+      savings: "Save $500"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">Choose Your Tax Freedom Plan</h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Professional tax strategies used by high-income earners to minimize tax burden and build wealth
+          </p>
+        </div>
+      </div>
+
+      <section className="py-16">
+        <div className="container mx-auto px-6">
+          <div className="bg-emerald-900/10 border border-emerald-400/30 rounded-lg p-4 max-w-2xl mx-auto mb-12">
+            <p className="text-emerald-700 text-center">
+              <strong>Full Platform Access Requires:</strong> One-time course fee + Active monthly subscription
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            {plans.map((plan, index) => (
+              <div key={index} className={`relative bg-white rounded-2xl shadow-xl overflow-hidden transform hover:scale-105 transition-all duration-300 ${plan.popular ? 'ring-4 ring-emerald-400' : ''}`}>
+                {plan.popular && (
+                  <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
+                    <span className="bg-emerald-400 text-navy-900 px-4 py-1 rounded-full text-sm font-bold">
+                      MOST POPULAR
+                    </span>
+                  </div>
+                )}
+                
+                {plan.savings && (
+                  <div className="absolute top-4 right-4">
+                    <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">
+                      {plan.savings}
+                    </span>
+                  </div>
+                )}
+                
+                <div className={`${plan.bg} px-6 py-8 border-b ${plan.border}`}>
+                  <h3 className="text-2xl font-bold text-navy-900 mb-2">{plan.name}</h3>
+                  <p className="text-gray-600 text-sm mb-6">{plan.description}</p>
+                  
+                  <div className="space-y-3">
+                    <div className="bg-white rounded-lg p-3 border-2 border-gray-200">
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-2xl font-bold text-navy-900">{plan.oneTimePrice}</span>
+                        <span className="text-gray-500 text-sm">{plan.oneTimeDescription}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">Lifetime course access</p>
+                    </div>
+                    
+                    <div className="text-center text-gray-500 font-bold">+</div>
+                    
+                    <div className={`bg-white rounded-lg p-3 border-2 ${plan.accent === 'pink' ? 'border-pink-200' : 'border-navy-200'}`}>
+                      <div className="flex items-baseline justify-between">
+                        <span className="text-2xl font-bold text-navy-900">{plan.monthlyPrice}</span>
+                        <span className="text-gray-500 text-sm">{plan.monthlyDescription}</span>
+                      </div>
+                      <p className="text-xs text-gray-600 mt-1">
+                        {plan.accent === 'pink' ? 'Premium AI tools & features' : 'AI tools & platform features'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="px-6 py-6">
+                  <ul className="space-y-3 mb-8">
+                    {plan.features.map((feature, featureIndex) => (
+                      <li key={featureIndex} className="flex items-start">
+                        <svg className="w-5 h-5 text-emerald-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                        <span className="text-gray-700 text-sm">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  
+                  <button className={`w-full bg-gradient-to-r ${plan.gradient} text-white py-4 px-6 rounded-xl font-bold text-lg hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200`}>
+                    {plan.ctaText}
+                  </button>
+                  
+                  <p className="text-xs text-gray-500 text-center mt-3">
+                    Cancel anytime • Keep course access forever
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Additional Information Section */}
+          <div className="max-w-4xl mx-auto mt-12">
+            <div className="bg-navy-900 border border-navy-600 rounded-xl p-6">
+              <h3 className="text-white text-lg font-bold mb-4 text-center">What You Get With Your Investment</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-navy-800 rounded-lg p-4">
+                  <h4 className="text-emerald-400 font-bold mb-2">One-Time Course Fee Includes:</h4>
+                  <ul className="text-gray-300 text-sm space-y-1">
+                    <li>• Lifetime access to course modules</li>
+                    <li>• Downloadable resources & worksheets</li>
+                    <li>• Case studies & implementation guides</li>
+                    <li>• Static course content forever</li>
+                  </ul>
+                </div>
+                <div className="bg-navy-800 rounded-lg p-4">
+                  <h4 className="text-emerald-400 font-bold mb-2">Monthly Subscription Unlocks:</h4>
+                  <ul className="text-gray-300 text-sm space-y-1">
+                    <li>• AI Strategy Assistant (TaxBot) - personalized guidance</li>
+                    <li>• Strategy simulators (Roth, REPS, W-2 offset, etc.)</li>
+                    <li>• Playbook Generator with custom tax blueprints</li>
+                    <li>• Document Analyzer for tax form optimization</li>
+                    <li>• Weekly office hours + in-app advisor chat</li>
+                    <li>• Mobile app with push alerts & progress tracking</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="text-center mt-8">
+            <p className="text-gray-600 text-sm mb-4">
+              30-day money-back guarantee on course fee • Cancel subscription anytime • Secure payment
+            </p>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+};
+
+// Placeholder components for other sections (keeping existing functionality)
+const GlossaryPage = () => {
+  const [glossaryTerms, setGlossaryTerms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchGlossary();
+  }, []);
+
+  const fetchGlossary = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/glossary`);
+      if (response.ok) {
+        const data = await response.json();
+        setGlossaryTerms(data);
+      }
+    } catch (error) {
+      console.error('Error fetching glossary:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">Tax Strategy Glossary</h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Comprehensive definitions and real-world examples of tax strategies and concepts
+          </p>
+        </div>
+      </div>
+      
+      <div className="container mx-auto px-6 py-12">
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-emerald-400"></div>
+          </div>
+        ) : (
+          <GlossarySection glossaryTerms={glossaryTerms} />
+        )}
+      </div>
+    </div>
+  );
+};
+
+const ToolsPage = () => {
+  const [tools, setTools] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userSubscription, setUserSubscription] = useState('free'); // This would come from actual user data
+  const [showPlaybookGenerator, setShowPlaybookGenerator] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  useEffect(() => {
+    fetchTools();
+  }, []);
+
+  const fetchTools = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/tools`);
+      if (response.ok) {
+        const data = await response.json();
+        setTools(data);
+      }
+    } catch (error) {
+      console.error('Error fetching tools:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Define free and premium tools
+  const freeTools = [
+    {
+      id: 'w2-offset-planner',
+      title: 'W-2 Offset Planner',
+      description: 'Calculate optimal deduction strategies for W-2 income',
+      secondLine: 'Map your depreciation capacity and offset opportunities',
+      icon: 'calculator',
+      status: 'free'
+    },
+    {
+      id: 'reps-hour-tracker',
+      title: 'REPS Hour Tracker',
+      description: 'Track and document your 750-hour qualification',
+      secondLine: 'Automated logging with audit-proof documentation',
+      icon: 'clock',
+      status: 'free'
+    },
+    {
+      id: '1040-diagnostic',
+      title: '1040 Diagnostic',
+      description: 'Analyze your tax return for optimization opportunities',
+      secondLine: 'Identify missed deductions and planning gaps',
+      icon: 'document-search',
+      status: 'free'
+    },
+    {
+      id: 'strategy-xp-tracker',
+      title: 'Strategy XP Tracker',
+      description: 'Track your learning progress and mastery levels',
+      secondLine: 'Gamified progress with achievement milestones',
+      icon: 'chart-bar',
+      status: 'free'
+    },
+    {
+      id: 'glossary-quiz-mode',
+      title: 'Glossary Quiz Mode',
+      description: 'Test your knowledge of tax strategy terms',
+      secondLine: 'Interactive learning with XP rewards',
+      icon: 'academic-cap',
+      status: 'free'
+    }
+  ];
+
+  const premiumTools = [
+    {
+      id: 'roth-optimizer',
+      title: 'Roth Optimizer',
+      description: 'Model Roth conversion timing and tax impact',
+      secondLine: 'Multi-year projections with income scenarios',
+      icon: 'trending-up',
+      status: 'premium'
+    },
+    {
+      id: 'entity-builder',
+      title: 'Entity Builder',
+      description: 'Design optimal entity structures for your situation',
+      secondLine: 'MSO configurations with tax rate modeling',
+      icon: 'office-building',
+      status: 'premium'
+    },
+    {
+      id: 'cost-seg-roi-tool',
+      title: 'Cost Seg ROI Tool',
+      description: 'Calculate cost segregation returns and timing',
+      secondLine: 'Property analysis with depreciation acceleration',
+      icon: 'home',
+      status: 'premium'
+    },
+    {
+      id: 'ai-playbook-generator',
+      title: 'AI Playbook Generator',
+      description: 'Generate custom tax strategies for your profile',
+      secondLine: 'Personalized recommendations with implementation steps',
+      icon: 'lightning-bolt',
+      status: 'premium'
+    },
+    {
+      id: 'premium-document-reader',
+      title: 'Premium Document Reader',
+      description: 'AI analysis of K-1s, 1099s, and entity returns',
+      secondLine: 'Automated optimization suggestions and red flags',
+      icon: 'document-text',
+      status: 'premium'
+    }
+  ];
+
+  const getIcon = (iconName) => {
+    const iconMap = {
+      'calculator': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+        </svg>
+      ),
+      'clock': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      ),
+      'document-search': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5l4.5-4.5M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      ),
+      'chart-bar': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+        </svg>
+      ),
+      'academic-cap': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+        </svg>
+      ),
+      'trending-up': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+        </svg>
+      ),
+      'office-building': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+      ),
+      'home': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+        </svg>
+      ),
+      'lightning-bolt': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+        </svg>
+      ),
+      'document-text': (
+        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+        </svg>
+      )
+    };
+    return iconMap[iconName] || iconMap['calculator'];
+  };
+
+  const handleToolClick = (tool) => {
+    if (tool.status === 'premium' && userSubscription === 'free') {
+      // Show upgrade modal for premium tools
+      setShowUpgradeModal(true);
+      return;
+    }
+    
+    // Handle specific tool launches
+    if (tool.id === 'ai-playbook-generator') {
+      setShowPlaybookGenerator(true);
+      return;
+    }
+    
+    // Launch tool functionality would go here
+    console.log(`Launching tool: ${tool.title}`);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">Your AI Tax Toolbox</h1>
+          <p className="text-xl text-gray-300 max-w-4xl mx-auto">
+            Every strategy needs a system. Use these tools to map, model, and manage your IRS Escape Plan.
+          </p>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-6 py-12">
+        {/* Free Tools Section */}
+        <div className="mb-16">
+          <div className="flex items-center mb-8">
+            <div className="w-12 h-12 bg-emerald-500 rounded-lg flex items-center justify-center mr-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-navy-900">Free Tools</h2>
+              <p className="text-gray-600">Available to all users - no subscription required</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {freeTools.map((tool) => (
+              <div 
+                key={tool.id}
+                className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-all duration-300 cursor-pointer border border-emerald-100 hover:border-emerald-300"
+                onClick={() => handleToolClick(tool)}
+              >
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center mr-4">
+                    {getIcon(tool.icon)}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-navy-900">{tool.title}</h3>
+                  </div>
+                </div>
+                
+                <p className="text-gray-700 mb-2">{tool.description}</p>
+                <p className="text-gray-500 text-sm mb-4">{tool.secondLine}</p>
+                
+                <button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white py-3 px-4 rounded-lg font-bold transition-colors duration-200 flex items-center justify-center">
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                  </svg>
+                  Launch Tool
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Premium Tools Section */}
+        <div>
+          <div className="flex items-center mb-8">
+            <div className="w-12 h-12 bg-gradient-to-r from-yellow-500 to-yellow-600 rounded-lg flex items-center justify-center mr-4">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-navy-900">Premium Tools</h2>
+              <p className="text-gray-600">Advanced AI-powered tools for active subscribers</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {premiumTools.map((tool) => (
+              <div 
+                key={tool.id}
+                className={`bg-white rounded-xl shadow-lg p-6 transition-all duration-300 border-2 relative ${
+                  userSubscription === 'free' 
+                    ? 'opacity-75 border-gray-200 cursor-not-allowed' 
+                    : 'hover:shadow-xl cursor-pointer border-yellow-200 hover:border-yellow-400'
+                }`}
+                onClick={() => handleToolClick(tool)}
+              >
+                {userSubscription === 'free' && (
+                  <div className="absolute top-4 right-4">
+                    <div className="bg-yellow-500 text-white p-1 rounded-full">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center mb-4">
+                  <div className="w-12 h-12 bg-gradient-to-r from-yellow-100 to-yellow-200 text-yellow-600 rounded-lg flex items-center justify-center mr-4">
+                    {getIcon(tool.icon)}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-bold text-navy-900">{tool.title}</h3>
+                  </div>
+                </div>
+                
+                <p className="text-gray-700 mb-2">{tool.description}</p>
+                <p className="text-gray-500 text-sm mb-4">{tool.secondLine}</p>
+                
+                <button 
+                  className={`w-full py-3 px-4 rounded-lg font-bold transition-colors duration-200 flex items-center justify-center ${
+                    userSubscription === 'free'
+                      ? 'bg-gray-300 text-gray-600 cursor-not-allowed'
+                      : 'bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white'
+                  }`}
+                  disabled={userSubscription === 'free'}
+                >
+                  {userSubscription === 'free' ? (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                      Upgrade to Access
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                      </svg>
+                      Launch Tool
+                    </>
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Upgrade CTA for free users */}
+        {userSubscription === 'free' && (
+          <div className="mt-12 text-center">
+            <div className="bg-gradient-to-r from-yellow-50 to-yellow-100 border border-yellow-200 rounded-xl p-8">
+              <h3 className="text-2xl font-bold text-navy-900 mb-4">Unlock Your Complete Tax Toolbox</h3>
+              <p className="text-gray-700 mb-6 max-w-2xl mx-auto">
+                Get access to all premium AI-powered tools, advanced modeling capabilities, 
+                and personalized strategy generation with an active subscription.
+              </p>
+              <button 
+                onClick={() => window.location.href = '/pricing'}
+                className="bg-gradient-to-r from-yellow-500 to-yellow-600 hover:from-yellow-600 hover:to-yellow-700 text-white px-8 py-4 rounded-xl font-bold text-lg transition-all duration-200 hover:shadow-lg"
+              >
+                View Pricing Plans
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+const TaxBotPage = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">AI Strategy Assistant</h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Get personalized tax strategy guidance from our AI assistant
+          </p>
+        </div>
+      </div>
+      <div className="container mx-auto px-6 py-12">
+        <TaxBotSection />
+      </div>
+    </div>
+  );
+};
+
+const PremiumToolsPage = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">Premium Tools</h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Advanced tools for tax optimization and strategy
+          </p>
+        </div>
+      </div>
+      <div className="container mx-auto px-6 py-12">
+        <PremiumToolsSection />
+      </div>
+    </div>
+  );
+};
+
+const MarketplacePage = () => {
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-gradient-to-r from-navy-900 to-emerald-900 text-white py-16">
+        <div className="container mx-auto px-6 text-center">
+          <h1 className="text-5xl font-bold mb-6">Marketplace</h1>
+          <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+            Additional courses and professional services
+          </p>
+        </div>
+      </div>
+      <div className="container mx-auto px-6 py-12">
+        <MarketplaceSection />
+      </div>
+    </div>
+  );
+};
+
+// Main App Component with Router
+const App = () => {
+  if (showPlaybookGenerator) {
+    return <PlaybookGenerator onClose={() => setShowPlaybookGenerator(false)} userSubscription={userSubscription} />;
+  }
+
+  return (
+    <Router>
+      <div className="min-h-screen bg-gray-50">
+        <Header />
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/courses" element={<CoursesPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/glossary" element={<GlossaryPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
+          {/* Legacy routes for existing functionality */}
+          <Route path="/taxbot" element={<TaxBotPage />} />
+          <Route path="/premium-tools" element={<PremiumToolsPage />} />
+          <Route path="/marketplace" element={<MarketplacePage />} />
+        </Routes>
+      </div>
+    </Router>
+  );
+};
+
+export default App;
