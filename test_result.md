@@ -154,19 +154,31 @@ frontend:
         agent: "main"
         comment: "Successfully restored complete IRS Escape Plan React frontend with course modules, glossary system, tools, and user interface. All dependencies installed and hot reload working."
 
+  - task: "Enhance Second 10 Glossary Terms (Batch 2)"
+    implemented: true
+    working: true
+    file: "/app/enhance_glossary_terms_batch_2.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Successfully enhanced the second batch of 10 glossary terms (11-20): 1) Deferred Sales Trust (DST), 2) C-Corp + MSO, 3) Tax-Free Reorganization (F-Reorg), 4) Bonus Depreciation (updated existing), 5) Qualified Intermediary (QI), 6) MSO (Management Services Organization), 7) Capital Gains Harvesting, 8) Section 1202 (QSBS), 9) Installment Sale, 10) Entity Layering. Total glossary terms now: 72. All terms include comprehensive content with definitions, plain English explanations, real-world case studies, and key benefits."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 1
+  test_sequence: 2
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Enhance First 10 Glossary Terms"
+    - "Enhanced Second 10 Glossary Terms (Batch 2)"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Successfully restored the complete IRS Escape Plan platform from GitHub repository. Backend and frontend are running with all course content, glossary system, and tools. Enhanced the first 10 glossary terms with comprehensive content including technical definitions, plain English explanations, real-world case studies, and key benefits. All 10 terms are now searchable, award XP on first view, and display cleanly in the glossary UI. Task completed successfully."
+    message: "Successfully completed the second batch of 10 enhanced glossary terms (11-20) for the IRS Escape Plan platform. All terms include comprehensive technical definitions, plain English explanations, detailed real-world case studies with client examples, and clear key benefits. Database now contains 72 total terms (53 original + 20 enhanced). Search functionality, XP integration, and content quality verified. Ready for the final batch of glossary terms."
