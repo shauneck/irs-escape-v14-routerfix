@@ -691,6 +691,97 @@ async def get_user_progress(user_id: str):
     progress = await db.user_progress.find({"user_id": user_id}).to_list(1000)
     return [UserProgress(**p) for p in progress]
 
+# Quinn AI Assistant Endpoints
+@api_router.post("/quinn/chat", response_model=QuinnResponse)
+async def quinn_chat(request: QuinnRequest):
+    """Main Quinn AI chat endpoint"""
+    try:
+        # Process the request through Quinn AI
+        response = await quinn_processor.process_request(request)
+        
+        # Store conversation in database
+        conversation = await db.quinn_conversations.find_one({
+            "user_id": request.user_id,
+            "session_id": request.session_id
+        })
+        
+        if not conversation:
+            # Create new conversation
+            conversation = QuinnConversation(
+                user_id=request.user_id,
+                session_id=request.session_id,
+                context=request.context
+            )
+            await db.quinn_conversations.insert_one(conversation.dict())
+        
+        # Add message to conversation
+        await db.quinn_conversations.update_one(
+            {"user_id": request.user_id, "session_id": request.session_id},
+            {
+                "$push": {
+                    "messages": {
+                        "user_message": request.message,
+                        "quinn_response": response.dict(),
+                        "timestamp": datetime.utcnow()
+                    }
+                },
+                "$set": {
+                    "last_updated": datetime.utcnow(),
+                    "context": request.context
+                }
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Quinn AI error: {e}")
+        return QuinnResponse(
+            response="I'm having trouble processing that request right now. Please try again or rephrase your question.",
+            module_used="error",
+            confidence=0.0
+        )
+
+@api_router.get("/quinn/conversations/{user_id}")
+async def get_quinn_conversations(user_id: str):
+    """Get user's Quinn conversation history"""
+    conversations = await db.quinn_conversations.find(
+        {"user_id": user_id}
+    ).sort("last_updated", -1).to_list(50)
+    
+    return [QuinnConversation(**conv) for conv in conversations]
+
+@api_router.get("/quinn/conversations/{user_id}/{session_id}")
+async def get_quinn_conversation(user_id: str, session_id: str):
+    """Get specific Quinn conversation"""
+    conversation = await db.quinn_conversations.find_one({
+        "user_id": user_id,
+        "session_id": session_id
+    })
+    
+    if not conversation:
+        raise HTTPException(status_code=404, detail="Conversation not found")
+    
+    return QuinnConversation(**conversation)
+
+@api_router.post("/quinn/context")
+async def update_quinn_context(user_id: str, context: dict):
+    """Update Quinn's context for better responses"""
+    # Store user context for Quinn to use
+    await db.quinn_conversations.update_many(
+        {"user_id": user_id},
+        {"$set": {"context": context}},
+        upsert=False
+    )
+    
+    return {"status": "Context updated"}
+
+@api_router.delete("/quinn/conversations/{user_id}")
+async def clear_quinn_conversations(user_id: str):
+    """Clear user's Quinn conversation history"""
+    result = await db.quinn_conversations.delete_many({"user_id": user_id})
+    return {"status": "success", "deleted_count": result.deleted_count}
+
 # Initialize sample data
 @api_router.post("/initialize-data")
 async def initialize_sample_data():
