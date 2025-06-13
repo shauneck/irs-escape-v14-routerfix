@@ -166,19 +166,31 @@ frontend:
         agent: "main"
         comment: "Successfully enhanced the second batch of 10 glossary terms (11-20): 1) Deferred Sales Trust (DST), 2) C-Corp + MSO, 3) Tax-Free Reorganization (F-Reorg), 4) Bonus Depreciation (updated existing), 5) Qualified Intermediary (QI), 6) MSO (Management Services Organization), 7) Capital Gains Harvesting, 8) Section 1202 (QSBS), 9) Installment Sale, 10) Entity Layering. Total glossary terms now: 72. All terms include comprehensive content with definitions, plain English explanations, real-world case studies, and key benefits."
 
+  - task: "Glossary Duplicate Cleanup"
+    implemented: true
+    working: true
+    file: "/app/glossary_duplicate_cleanup.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Successfully performed comprehensive glossary cleanup. Removed 10 duplicate terms while preserving the most complete versions. Found and resolved 7 sets of duplicates including REPS, QOF, QSBS, Bonus Depreciation, and others. Final database contains 62 unique terms with 25 fully enhanced entries. Database integrity maintained with all terms remaining searchable and properly linked."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 2
+  test_sequence: 3
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Enhanced Second 10 Glossary Terms (Batch 2)"
+    - "Glossary Duplicate Cleanup"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Successfully completed the second batch of 10 enhanced glossary terms (11-20) for the IRS Escape Plan platform. All terms include comprehensive technical definitions, plain English explanations, detailed real-world case studies with client examples, and clear key benefits. Database now contains 72 total terms (53 original + 20 enhanced). Search functionality, XP integration, and content quality verified. Ready for the final batch of glossary terms."
+    message: "Successfully completed comprehensive glossary duplicate cleanup for the IRS Escape Plan platform. Identified and removed 10 duplicate terms across 7 duplicate sets, keeping only the most complete versions with all required fields (definition, plain English, case study, key benefit). Final glossary now contains 62 unique terms with 25 fully enhanced entries. All terms remain searchable, properly categorized, and maintain their course module links. Database integrity verified and maintained."
