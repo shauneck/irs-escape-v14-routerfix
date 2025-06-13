@@ -178,19 +178,31 @@ frontend:
         agent: "main"
         comment: "Successfully performed comprehensive glossary cleanup. Removed 10 duplicate terms while preserving the most complete versions. Found and resolved 7 sets of duplicates including REPS, QOF, QSBS, Bonus Depreciation, and others. Final database contains 62 unique terms with 25 fully enhanced entries. Database integrity maintained with all terms remaining searchable and properly linked."
 
+  - task: "Delete Duplicate MSO Glossary Term"
+    implemented: true
+    working: true
+    file: "/app/delete_mso_duplicate.py"
+    stuck_count: 0
+    priority: "high"
+    needs_retesting: false
+    status_history:
+      - working: true
+        agent: "main"
+        comment: "Successfully deleted the duplicate 'C-Corp MSO' term while preserving 'C-Corp + MSO' and 'MSO (Management Services Organization)' terms. Verified both preserved terms retain their enhanced content with plain English explanations, case studies, and key benefits. Search functionality tested and confirmed working. Final glossary contains 61 unique terms with 17 fully enhanced entries."
+
 metadata:
   created_by: "main_agent"
   version: "1.0"
-  test_sequence: 3
+  test_sequence: 4
   run_ui: false
 
 test_plan:
   current_focus:
-    - "Glossary Duplicate Cleanup"
+    - "Delete Duplicate MSO Glossary Term"
   stuck_tasks: []
   test_all: false
   test_priority: "high_first"
 
 agent_communication:
   - agent: "main"
-    message: "Successfully completed comprehensive glossary duplicate cleanup for the IRS Escape Plan platform. Identified and removed 10 duplicate terms across 7 duplicate sets, keeping only the most complete versions with all required fields (definition, plain English, case study, key benefit). Final glossary now contains 62 unique terms with 25 fully enhanced entries. All terms remain searchable, properly categorized, and maintain their course module links. Database integrity verified and maintained."
+    message: "Successfully completed targeted deletion of duplicate 'C-Corp MSO' glossary term as requested. Preserved the two specified terms: 'C-Corp + MSO' and 'MSO (Management Services Organization)', both of which retain their full enhanced content. Search functionality verified and working correctly. No course module links affected. Final glossary database contains 61 unique terms with clean structure and maintained functionality."
