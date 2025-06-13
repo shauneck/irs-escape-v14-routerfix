@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .course-card {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .course-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .course-type {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .primer {
+            background-color: #10B981;
+            color: white;
+        }
+        .w2 {
+            background-color: #3B82F6;
+            color: white;
+        }
+        .business {
+            background-color: #8B5CF6;
+            color: white;
+        }
+        .course-stats {
+            display: flex;
+            gap: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>IRS Escape Plan API Debug</h1>
+    
+    <div>
+        <button id="fetchCourses">Fetch Courses</button>
+        <button id="fetchGlossary">Fetch Glossary</button>
+        <button id="fetchTools">Fetch Tools</button>
+    </div>
+    
+    <h2>API Response:</h2>
+    <div id="apiResponse">Click a button to fetch data</div>
+    
+    <h2>Courses:</h2>
+    <div id="coursesContainer"></div>
+    
+    <script>
+        const API_URL = 'https://34039d22-8ab3-414d-aca7-37a7d49cd299.preview.emergentagent.com';
+        
+        document.getElementById('fetchCourses').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/courses`);
+                const data = await response.json();
+                
+                document.getElementById('apiResponse').innerHTML = `
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                renderCourses(data);
+            } catch (error) {
+                document.getElementById('apiResponse').innerHTML = `
+                    <p style="color: red;">Error: ${error.message}</p>
+                `;
+            }
+        });
+        
+        document.getElementById('fetchGlossary').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/glossary`);
+                const data = await response.json();
+                
+                document.getElementById('apiResponse').innerHTML = `
+                    <pre>${JSON.stringify(data.slice(0, 3), null, 2)}</pre>
+                    <p>... (${data.length} total items)</p>
+                `;
+            } catch (error) {
+                document.getElementById('apiResponse').innerHTML = `
+                    <p style="color: red;">Error: ${error.message}</p>
+                `;
+            }
+        });
+        
+        document.getElementById('fetchTools').addEventListener('click', async () => {
+            try {
+                const response = await fetch(`${API_URL}/api/tools`);
+                const data = await response.json();
+                
+                document.getElementById('apiResponse').innerHTML = `
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+            } catch (error) {
+                document.getElementById('apiResponse').innerHTML = `
+                    <p style="color: red;">Error: ${error.message}</p>
+                `;
+            }
+        });
+        
+        function renderCourses(courses) {
+            const container = document.getElementById('coursesContainer');
+            container.innerHTML = '';
+            
+            courses.forEach(course => {
+                const courseCard = document.createElement('div');
+                courseCard.className = 'course-card';
+                
+                const typeLabel = course.type === 'primer' ? 'Primer Course' : 
+                                 course.type === 'w2' ? 'W-2 Strategy' : 
+                                 course.type === 'business' ? 'Business Owner' : 'Course';
+                
+                courseCard.innerHTML = `
+                    <div class="course-type ${course.type}">${typeLabel}</div>
+                    <div class="course-title">${course.title}</div>
+                    <p>${course.description}</p>
+                    <div class="course-stats">
+                        <span>${course.total_lessons} lessons</span>
+                        <span>${course.estimated_hours}h</span>
+                    </div>
+                `;
+                
+                container.appendChild(courseCard);
+            });
+        }
+        
+        // Auto-fetch courses on load
+        document.getElementById('fetchCourses').click();
+    </script>
+</body>
+</html>

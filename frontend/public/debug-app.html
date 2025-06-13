@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Debug</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            line-height: 1.6;
+        }
+        pre {
+            background-color: #f5f5f5;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        button {
+            padding: 10px 15px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>IRS Escape Plan App Debug</h1>
+    
+    <div>
+        <button id="checkApp">Check Main App</button>
+        <button id="fetchCourses">Fetch Courses API</button>
+        <button id="fetchGlossary">Fetch Glossary API</button>
+    </div>
+    
+    <h2>Results:</h2>
+    <div id="results">Click a button to start debugging</div>
+    
+    <script>
+        const API_URL = 'https://34039d22-8ab3-414d-aca7-37a7d49cd299.preview.emergentagent.com';
+        const resultsDiv = document.getElementById('results');
+        
+        document.getElementById('checkApp').addEventListener('click', async () => {
+            resultsDiv.innerHTML = '<p>Checking main app...</p>';
+            
+            try {
+                // Create an iframe to load the main app
+                const iframe = document.createElement('iframe');
+                iframe.style.display = 'none';
+                document.body.appendChild(iframe);
+                
+                // Set up message listener for errors from the iframe
+                window.addEventListener('message', (event) => {
+                    if (event.data && event.data.type === 'app-error') {
+                        resultsDiv.innerHTML += `<p class="error">Error: ${event.data.error}</p>`;
+                    }
+                    if (event.data && event.data.type === 'app-log') {
+                        resultsDiv.innerHTML += `<p>Log: ${event.data.message}</p>`;
+                    }
+                });
+                
+                // Load the main app in the iframe
+                iframe.src = API_URL;
+                
+                // Check console errors using fetch
+                const response = await fetch(API_URL);
+                const html = await response.text();
+                
+                // Check if the HTML contains the loading message
+                if (html.includes('Loading IRS Escape Plan')) {
+                    resultsDiv.innerHTML += '<p>Main app is showing loading message.</p>';
+                }
+                
+                // Check for React in the HTML
+                if (html.includes('react')) {
+                    resultsDiv.innerHTML += '<p>React is loaded in the main app.</p>';
+                }
+                
+                // Check for specific script tags
+                const scriptMatches = html.match(/<script[^>]*src="[^"]*"[^>]*>/g);
+                if (scriptMatches) {
+                    resultsDiv.innerHTML += '<p>Script tags found:</p><ul>';
+                    scriptMatches.forEach(script => {
+                        resultsDiv.innerHTML += `<li>${script}</li>`;
+                    });
+                    resultsDiv.innerHTML += '</ul>';
+                }
+                
+                resultsDiv.innerHTML += '<p>Main app check completed.</p>';
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Error checking main app: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('fetchCourses').addEventListener('click', async () => {
+            resultsDiv.innerHTML = '<p>Fetching courses API...</p>';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/courses`);
+                const data = await response.json();
+                
+                resultsDiv.innerHTML += `
+                    <p class="success">Successfully fetched ${data.length} courses!</p>
+                    <pre>${JSON.stringify(data.map(course => ({
+                        title: course.title,
+                        type: course.type,
+                        total_lessons: course.total_lessons,
+                        estimated_hours: course.estimated_hours
+                    })), null, 2)}</pre>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Error fetching courses: ${error.message}</p>`;
+            }
+        });
+        
+        document.getElementById('fetchGlossary').addEventListener('click', async () => {
+            resultsDiv.innerHTML = '<p>Fetching glossary API...</p>';
+            
+            try {
+                const response = await fetch(`${API_URL}/api/glossary`);
+                const data = await response.json();
+                
+                resultsDiv.innerHTML += `
+                    <p class="success">Successfully fetched ${data.length} glossary terms!</p>
+                    <pre>${JSON.stringify(data.slice(0, 2), null, 2)}</pre>
+                    <p>... (${data.length - 2} more items)</p>
+                `;
+            } catch (error) {
+                resultsDiv.innerHTML += `<p class="error">Error fetching glossary: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
