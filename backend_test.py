@@ -12,18 +12,8 @@ import sys
 import os
 from pprint import pprint
 
-# Get the backend URL from the frontend .env file
-try:
-    with open('/app/frontend/.env', 'r') as f:
-        for line in f:
-            if line.startswith('REACT_APP_BACKEND_URL='):
-                BACKEND_URL = line.strip().split('=', 1)[1] + "/api"
-                break
-except Exception as e:
-    print(f"Error reading frontend .env file: {e}")
-    # Fallback to localhost if we can't read the file
-    BACKEND_URL = "http://localhost:8001/api"
-
+# Use local URL for testing
+BACKEND_URL = "http://localhost:8001/api"
 print(f"Using backend URL: {BACKEND_URL}")
 
 def test_api_endpoint(endpoint, method="GET", data=None, params=None, expected_status=200):
