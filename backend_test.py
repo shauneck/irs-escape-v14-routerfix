@@ -220,15 +220,41 @@ def test_tools_endpoint():
     
     print(f"✅ Found {len(tools)} tools")
     
-    # Test a specific tool if available
-    if tools:
-        tool_id = tools[0]["id"]
+    # Check for specific tools (Entity Builder and Build Your Escape Plan)
+    expected_tools = ["Entity Builder", "Build Your Escape Plan"]
+    found_tools = [tool["name"] for tool in tools]
+    
+    for expected_tool in expected_tools:
+        if not any(expected_tool.lower() in tool.lower() for tool in found_tools):
+            print(f"❌ Expected tool not found: {expected_tool}")
+            print(f"   Available tools: {', '.join(found_tools)}")
+            return False
+    
+    print(f"✅ Found expected tools: {', '.join(expected_tools)}")
+    
+    # Test individual tool retrieval
+    for tool in tools:
+        tool_id = tool["id"]
         tool_detail = test_api_endpoint(f"tools/{tool_id}")
         
         if not tool_detail:
+            print(f"❌ Failed to retrieve tool details for: {tool['name']}")
+            return False
+        
+        # Check that tool has necessary configuration
+        if not tool_detail.get("config"):
+            print(f"❌ Tool '{tool_detail['name']}' is missing configuration")
             return False
         
         print(f"✅ Successfully retrieved tool details for: {tool_detail['name']}")
+    
+    # Test invalid tool ID
+    invalid_response = test_api_endpoint("tools/invalid-id", expected_status=404)
+    if invalid_response is not None:
+        print("❌ Expected 404 for invalid tool ID")
+        return False
+    
+    print("✅ Correctly returned 404 for invalid tool ID")
     
     return True
 
