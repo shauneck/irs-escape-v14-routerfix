@@ -59,6 +59,11 @@ def test_courses_endpoint():
     if not courses:
         return False
     
+    # Check if we have exactly 3 courses
+    if len(courses) != 3:
+        print(f"❌ Expected 3 courses, got {len(courses)}")
+        return False
+    
     # Check if we have the expected courses
     course_types = [course["type"] for course in courses]
     expected_types = ["primer", "w2", "business"]
@@ -70,31 +75,62 @@ def test_courses_endpoint():
     
     print(f"✅ Found {len(courses)} courses with expected types: {', '.join(course_types)}")
     
-    # Test a specific course
-    if courses:
-        course_id = courses[0]["id"]
-        course_detail = test_api_endpoint(f"courses/{course_id}")
-        
-        if not course_detail:
+    # Get course details and verify module counts
+    primer_course = next((c for c in courses if c["type"] == "primer"), None)
+    w2_course = next((c for c in courses if c["type"] == "w2"), None)
+    business_course = next((c for c in courses if c["type"] == "business"), None)
+    
+    # Verify Primer Course has 6 modules
+    if primer_course:
+        primer_lessons = test_api_endpoint(f"courses/{primer_course['id']}/lessons")
+        if not primer_lessons:
             return False
-        
-        print(f"✅ Successfully retrieved course details for: {course_detail['title']}")
-        
-        # Test course lessons
-        lessons = test_api_endpoint(f"courses/{course_id}/lessons")
-        
+        if len(primer_lessons) != 6:
+            print(f"❌ Primer Course should have 6 modules, found {len(primer_lessons)}")
+            return False
+        print(f"✅ Primer Course '{primer_course['title']}' has {len(primer_lessons)} modules as expected")
+    else:
+        print("❌ Primer Course not found")
+        return False
+    
+    # Verify W-2 Course has 10 modules
+    if w2_course:
+        w2_lessons = test_api_endpoint(f"courses/{w2_course['id']}/lessons")
+        if not w2_lessons:
+            return False
+        if len(w2_lessons) != 10:
+            print(f"❌ W-2 Course should have 10 modules, found {len(w2_lessons)}")
+            return False
+        print(f"✅ W-2 Course '{w2_course['title']}' has {len(w2_lessons)} modules as expected")
+    else:
+        print("❌ W-2 Course not found")
+        return False
+    
+    # Verify Business Owner Course has 9 modules
+    if business_course:
+        business_lessons = test_api_endpoint(f"courses/{business_course['id']}/lessons")
+        if not business_lessons:
+            return False
+        if len(business_lessons) != 9:
+            print(f"❌ Business Owner Course should have 9 modules, found {len(business_lessons)}")
+            return False
+        print(f"✅ Business Owner Course '{business_course['title']}' has {len(business_lessons)} modules as expected")
+    else:
+        print("❌ Business Owner Course not found")
+        return False
+    
+    # Check content quality for each course
+    for course_type, course in [("primer", primer_course), ("w2", w2_course), ("business", business_course)]:
+        lessons = test_api_endpoint(f"courses/{course['id']}/lessons")
         if not lessons:
-            return False
-        
-        print(f"✅ Found {len(lessons)} lessons for course: {course_detail['title']}")
-        
-        # Test course quiz
-        quiz = test_api_endpoint(f"courses/{course_id}/quiz")
-        
-        if quiz is None:  # Could be empty list which is valid
-            return False
-        
-        print(f"✅ Successfully retrieved quiz for course: {course_detail['title']}")
+            continue
+            
+        for lesson in lessons:
+            if not lesson.get("content") or len(lesson.get("content", "")) < 100:
+                print(f"❌ Course '{course['title']}' lesson '{lesson['title']}' has insufficient content")
+                return False
+                
+        print(f"✅ All lessons in '{course['title']}' have substantial content")
     
     return True
 
