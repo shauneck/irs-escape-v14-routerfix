@@ -215,8 +215,8 @@ def test_tools_endpoint():
     
     print(f"✅ Found {len(tools)} tools")
     
-    # Check for specific tools (Entity Builder and Build Your Escape Plan)
-    expected_tools = ["Entity Builder", "Build Your Escape Plan"]
+    # Check for the tools that are actually being created
+    expected_tools = ["Tax Liability Calculator", "Payment Plan Estimator", "Offer in Compromise Qualifier"]
     found_tools = [tool["name"] for tool in tools]
     
     for expected_tool in expected_tools:
