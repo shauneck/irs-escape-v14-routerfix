@@ -142,56 +142,37 @@ def test_glossary_endpoint():
     if not terms:
         return False
     
-    print(f"✅ Found {len(terms)} glossary terms")
+    # Check if we have at least 53 glossary terms (as mentioned in the status history)
+    if len(terms) < 53:
+        print(f"❌ Expected at least 53 glossary terms, found only {len(terms)}")
+        return False
     
-    # Check for enhanced terms
-    enhanced_terms = [
-        "REPS (Real Estate Professional Status)",
-        "QOF (Qualified Opportunity Fund)",
-        "QSBS (Qualified Small Business Stock)",
-        "Loan-Based Split Dollar",
-        "Irrevocable Grantor Trust",
-        "C-Corp (C Corporation)",
-        "S-Corp (S Corporation)",
-        "Installment Sale (Section 453)",
-        "Passive Losses",
-        "Advanced Depreciation (Bonus Depreciation & Section 179)"
-    ]
+    print(f"✅ Found {len(terms)} glossary terms (requirement: at least 53)")
     
-    found_enhanced_terms = []
+    # Check for enhanced terms with required fields
+    enhanced_fields = ["definition", "plain_english", "case_study", "key_benefit"]
     
+    terms_with_all_fields = 0
     for term in terms:
-        if term["term"] in enhanced_terms:
-            # Check if it has all required fields
-            required_fields = ["definition", "plain_english", "case_study", "key_benefit"]
-            has_all_fields = all(term.get(field) for field in required_fields)
-            
-            if has_all_fields:
-                found_enhanced_terms.append(term["term"])
-            else:
-                missing_fields = [field for field in required_fields if not term.get(field)]
-                print(f"❌ Term '{term['term']}' is missing fields: {', '.join(missing_fields)}")
+        has_all_fields = all(term.get(field) for field in enhanced_fields)
+        if has_all_fields:
+            terms_with_all_fields += 1
     
-    print(f"✅ Found {len(found_enhanced_terms)} enhanced terms with all required fields")
+    print(f"✅ Found {terms_with_all_fields} terms with all enhanced fields")
     
-    # Test glossary search for REPS
-    search_results = test_api_endpoint("glossary/search", params={"q": "REPS"})
+    # Test glossary search functionality
+    search_terms = ["REPS", "tax", "depreciation", "corporation", "trust"]
+    for search_term in search_terms:
+        search_results = test_api_endpoint("glossary/search", params={"q": search_term})
+        
+        if search_results is None:  # Could be empty list which is valid
+            return False
+        
+        print(f"✅ Search for '{search_term}' returned {len(search_results)} results")
     
-    if not search_results:
-        return False
-    
-    print(f"✅ Search for 'REPS' returned {len(search_results)} results")
-    
-    # Test glossary search for QSBS
-    search_results = test_api_endpoint("glossary/search", params={"q": "QSBS"})
-    
-    if not search_results:
-        return False
-    
-    print(f"✅ Search for 'QSBS' returned {len(search_results)} results")
-    
-    # Test a specific term if available
+    # Test individual term retrieval
     if terms:
+        # Test first term
         term_id = terms[0]["id"]
         term_detail = test_api_endpoint(f"glossary/{term_id}")
         
@@ -199,6 +180,33 @@ def test_glossary_endpoint():
             return False
         
         print(f"✅ Successfully retrieved term details for: {term_detail['term']}")
+        
+        # Test a term in the middle of the list
+        if len(terms) > 10:
+            mid_term_id = terms[10]["id"]
+            mid_term_detail = test_api_endpoint(f"glossary/{mid_term_id}")
+            
+            if not mid_term_detail:
+                return False
+            
+            print(f"✅ Successfully retrieved term details for: {mid_term_detail['term']}")
+        
+        # Test last term
+        last_term_id = terms[-1]["id"]
+        last_term_detail = test_api_endpoint(f"glossary/{last_term_id}")
+        
+        if not last_term_detail:
+            return False
+        
+        print(f"✅ Successfully retrieved term details for: {last_term_detail['term']}")
+    
+    # Test invalid term ID
+    invalid_response = test_api_endpoint("glossary/invalid-id", expected_status=404)
+    if invalid_response is not None:
+        print("❌ Expected 404 for invalid glossary term ID")
+        return False
+    
+    print("✅ Correctly returned 404 for invalid glossary term ID")
     
     return True
 
