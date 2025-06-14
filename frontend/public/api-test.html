@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IRS Escape Plan - Frontend API Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .loading { background-color: #fff3cd; border-color: #ffeaa7; color: #856404; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Frontend API Connectivity Test</h1>
+    <p>Testing API connectivity and data retrieval for the IRS Escape Plan platform.</p>
+    
+    <div id="backend-url-test" class="test loading">
+        <h3>📍 Backend URL Configuration</h3>
+        <p>Checking configured backend URL...</p>
+    </div>
+    
+    <div id="courses-test" class="test loading">
+        <h3>📚 Courses API Test</h3>
+        <p>Fetching courses from API...</p>
+    </div>
+    
+    <div id="glossary-test" class="test loading">
+        <h3>📖 Glossary API Test</h3>
+        <p>Fetching glossary terms from API...</p>
+    </div>
+    
+    <div id="solution" class="test" style="display: none;">
+        <h3>🔧 Recommended Solutions</h3>
+        <div id="solution-content"></div>
+    </div>
+
+    <script>
+        const API_BASE_URL = process.env.REACT_APP_BACKEND_URL || 'BACKEND_URL_NOT_SET';
+        
+        // Test 1: Backend URL Configuration
+        document.getElementById('backend-url-test').innerHTML = `
+            <h3>📍 Backend URL Configuration</h3>
+            <p><strong>Configured URL:</strong> ${API_BASE_URL}</p>
+            <p><strong>Expected:</strong> Should point to accessible backend server</p>
+        `;
+        document.getElementById('backend-url-test').className = 'test success';
+        
+        // Test 2: Courses API
+        async function testCoursesAPI() {
+            try {
+                console.log('Fetching courses from:', `${API_BASE_URL}/api/courses`);
+                const response = await fetch(`${API_BASE_URL}/api/courses`);
+                const data = await response.json();
+                
+                document.getElementById('courses-test').innerHTML = `
+                    <h3>📚 Courses API Test</h3>
+                    <p><strong>Status:</strong> ✅ Success</p>
+                    <p><strong>URL:</strong> ${API_BASE_URL}/api/courses</p>
+                    <p><strong>Count:</strong> ${data.length} courses found</p>
+                    <details>
+                        <summary>Raw Response</summary>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    </details>
+                `;
+                document.getElementById('courses-test').className = 'test success';
+                return data.length;
+            } catch (error) {
+                document.getElementById('courses-test').innerHTML = `
+                    <h3>📚 Courses API Test</h3>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>URL:</strong> ${API_BASE_URL}/api/courses</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                document.getElementById('courses-test').className = 'test error';
+                return 0;
+            }
+        }
+        
+        // Test 3: Glossary API
+        async function testGlossaryAPI() {
+            try {
+                console.log('Fetching glossary from:', `${API_BASE_URL}/api/glossary`);
+                const response = await fetch(`${API_BASE_URL}/api/glossary`);
+                const data = await response.json();
+                
+                // Check enhanced formatting
+                const enhancedTerms = data.filter(term => 
+                    term.plain_english && term.case_study && term.key_benefit
+                );
+                
+                document.getElementById('glossary-test').innerHTML = `
+                    <h3>📖 Glossary API Test</h3>
+                    <p><strong>Status:</strong> ✅ Success</p>
+                    <p><strong>URL:</strong> ${API_BASE_URL}/api/glossary</p>
+                    <p><strong>Total Terms:</strong> ${data.length}</p>
+                    <p><strong>Enhanced Terms:</strong> ${enhancedTerms.length} (with all 4 required fields)</p>
+                    <details>
+                        <summary>Sample Enhanced Term</summary>
+                        <pre>${JSON.stringify(enhancedTerms[0] || data[0], null, 2)}</pre>
+                    </details>
+                `;
+                document.getElementById('glossary-test').className = 'test success';
+                return data.length;
+            } catch (error) {
+                document.getElementById('glossary-test').innerHTML = `
+                    <h3>📖 Glossary API Test</h3>
+                    <p><strong>Status:</strong> ❌ Failed</p>
+                    <p><strong>URL:</strong> ${API_BASE_URL}/api/glossary</p>
+                    <p><strong>Error:</strong> ${error.message}</p>
+                `;
+                document.getElementById('glossary-test').className = 'test error';
+                return 0;
+            }
+        }
+        
+        // Run tests and show solutions
+        async function runTests() {
+            const coursesCount = await testCoursesAPI();
+            const glossaryCount = await testGlossaryAPI();
+            
+            // Show solutions based on results
+            let solutions = '';
+            
+            if (coursesCount === 0 || glossaryCount === 0) {
+                solutions += `
+                    <h4>🚨 API Connectivity Issues Detected</h4>
+                    <p>The frontend cannot reach the backend API. Try these solutions:</p>
+                    <ol>
+                        <li><strong>Check Network Tab:</strong> Open browser developer tools → Network tab → Refresh page → Look for failed API calls</li>
+                        <li><strong>Verify Backend Status:</strong> Ensure backend is running on correct port</li>
+                        <li><strong>CORS Issues:</strong> Backend may not be allowing frontend origin</li>
+                        <li><strong>URL Configuration:</strong> Backend URL in .env may be incorrect</li>
+                    </ol>
+                `;
+            } else {
+                if (coursesCount !== 3) {
+                    solutions += `<p>⚠️ Expected 3 courses, found ${coursesCount}</p>`;
+                }
+                if (glossaryCount !== 61) {
+                    solutions += `<p>⚠️ Expected 61 glossary terms, found ${glossaryCount}</p>`;
+                }
+                
+                if (coursesCount === 3 && glossaryCount === 61) {
+                    solutions += `
+                        <h4>✅ All API Tests Passed!</h4>
+                        <p>Backend is returning correct data:</p>
+                        <ul>
+                            <li>✅ 3 courses found</li>
+                            <li>✅ 61 glossary terms found</li>
+                        </ul>
+                        <p>If you're still not seeing data in the main app, try:</p>
+                        <ol>
+                            <li>Hard refresh (Ctrl+Shift+R or Cmd+Shift+R)</li>
+                            <li>Clear browser cache</li>
+                            <li>Clear localStorage: <code>localStorage.clear()</code></li>
+                        </ol>
+                    `;
+                }
+            }
+            
+            if (solutions) {
+                document.getElementById('solution-content').innerHTML = solutions;
+                document.getElementById('solution').style.display = 'block';
+            }
+        }
+        
+        // Start tests
+        runTests();
+    </script>
+</body>
+</html>
