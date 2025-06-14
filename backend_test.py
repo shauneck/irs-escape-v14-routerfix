@@ -147,26 +147,49 @@ def test_glossary_endpoint():
     if not terms:
         return False
     
-    # Check if we have at least 53 glossary terms (as mentioned in the status history)
-    if len(terms) < 53:
-        print(f"❌ Expected at least 53 glossary terms, found only {len(terms)}")
+    # Check if we have exactly 61 glossary terms (as specified in the requirements)
+    if len(terms) != 61:
+        print(f"❌ Expected exactly 61 glossary terms, found {len(terms)}")
         return False
     
-    print(f"✅ Found {len(terms)} glossary terms (requirement: at least 53)")
+    print(f"✅ Found exactly {len(terms)} glossary terms (requirement: exactly 61)")
     
     # Check for terms with enhanced fields
     enhanced_fields = ["definition", "plain_english", "case_study", "key_benefit"]
     
     terms_with_all_fields = 0
+    terms_missing_fields = []
+    
     for term in terms:
         # Check if term has non-empty values for all enhanced fields
-        has_all_fields = all(term.get(field) and len(str(term.get(field))) > 0 for field in enhanced_fields)
-        if has_all_fields:
+        missing_fields = [field for field in enhanced_fields if not term.get(field) or len(str(term.get(field))) == 0]
+        
+        if not missing_fields:
             terms_with_all_fields += 1
+        else:
+            terms_missing_fields.append({
+                "term": term["term"],
+                "missing_fields": missing_fields
+            })
     
-    # Note: We're not failing the test if no terms have all enhanced fields,
-    # just reporting the count
-    print(f"✅ Found {terms_with_all_fields} terms with all enhanced fields")
+    # We should have all terms with all enhanced fields
+    if terms_with_all_fields != len(terms):
+        print(f"❌ Only {terms_with_all_fields} out of {len(terms)} terms have all enhanced fields")
+        print("Terms missing fields:")
+        for term_info in terms_missing_fields[:5]:  # Show first 5 for brevity
+            print(f"  - '{term_info['term']}' missing: {', '.join(term_info['missing_fields'])}")
+        if len(terms_missing_fields) > 5:
+            print(f"  - ... and {len(terms_missing_fields) - 5} more terms with missing fields")
+        return False
+    
+    print(f"✅ All {terms_with_all_fields} terms have all required enhanced fields")
+    
+    # Check categories and tags
+    terms_with_categories = sum(1 for term in terms if term.get("category") and len(term["category"]) > 0)
+    terms_with_tags = sum(1 for term in terms if term.get("tags") and len(term["tags"]) > 0)
+    
+    print(f"✅ {terms_with_categories} terms have categories assigned")
+    print(f"✅ {terms_with_tags} terms have tags assigned")
     
     # Test glossary search functionality
     search_terms = ["REPS", "tax", "depreciation", "corporation", "trust"]
