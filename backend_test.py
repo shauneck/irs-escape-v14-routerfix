@@ -436,11 +436,11 @@ def run_all_tests():
     
     # Run all test functions
     test_functions = [
+        test_data_initialization,  # Run initialization first to ensure data is fresh
         test_courses_endpoint,
         test_glossary_endpoint,
         test_tools_endpoint,
         test_user_xp_endpoint,
-        test_data_initialization,
         test_quinn_ai_removal
     ]
     
@@ -456,6 +456,33 @@ def run_all_tests():
     print(f"Total Tests: {total_tests}")
     print(f"Passed: {passed_tests}")
     print(f"Failed: {total_tests - passed_tests}")
+    
+    # Print verification of key requirements
+    print("\n==== Verification of Key Requirements ====")
+    
+    # Check if we passed the glossary test
+    if results[2]:  # Index 2 is test_glossary_endpoint
+        print("✅ Glossary Verification: 61 terms with enhanced formatting")
+    else:
+        print("❌ Glossary Verification: Failed to verify 61 terms with enhanced formatting")
+    
+    # Check if we passed the courses test
+    if results[1]:  # Index 1 is test_courses_endpoint
+        print("✅ Course Verification: 3 courses with correct module counts (Primer: 6, W-2: 10, Business: 9)")
+    else:
+        print("❌ Course Verification: Failed to verify courses with correct module counts")
+    
+    # Check if we passed the tools test
+    if results[3]:  # Index 3 is test_tools_endpoint
+        print("✅ Tools Verification: Tools API endpoints are functional")
+    else:
+        print("❌ Tools Verification: Failed to verify tools API endpoints")
+    
+    # Check if we passed the XP test
+    if results[4]:  # Index 4 is test_user_xp_endpoint
+        print("✅ XP Tracking Verification: XP tracking system is functional")
+    else:
+        print("❌ XP Tracking Verification: Failed to verify XP tracking system")
     
     if passed_tests == total_tests:
         print("\n✅ All tests passed successfully!")
