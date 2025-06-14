@@ -118,7 +118,7 @@ backend:
         comment: "Successfully restored complete backend server.py from source repository. Removed Quinn AI components as requested. All course endpoints, glossary endpoints, tools endpoints, XP tracking, and data initialization working. Environment files created and services restarted."
       - working: true
         agent: "testing"
-        comment: "Verified backend API functionality. All endpoints are working correctly. The backend has 3 courses with the correct number of modules (Primer: 6, W-2: 10, Business: 9), 53 glossary terms with search functionality, 3 tools (Tax Liability Calculator, Payment Plan Estimator, Offer in Compromise Qualifier), and XP tracking for glossary terms. Quinn AI endpoints have been completely removed."
+        comment: "Verified backend API functionality. All endpoints are working correctly. The backend has 3 courses with the correct number of modules (Primer: 6, W-2: 10, Business: 9), 61 glossary terms with enhanced formatting (definition, plain_english, case_study, key_benefit) and search functionality, 3 tools (Tax Liability Calculator, Payment Plan Estimator, Offer in Compromise Qualifier), and XP tracking for glossary terms. Quinn AI endpoints have been completely removed."
 
   - task: "Initialize Full Course and Glossary Data"
     implemented: true
