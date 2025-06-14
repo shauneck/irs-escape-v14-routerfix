@@ -12,7 +12,7 @@ import sys
 from pprint import pprint
 
 # Get the backend URL from the frontend .env file
-BACKEND_URL = "https://aa0bc4b4-0f8b-4b80-879a-eff9977cf89d.preview.emergentagent.com/api"
+BACKEND_URL = "https://121ca5b5-ce3d-4bb1-8b1a-0c44a264bf92.preview.emergentagent.com/api"
 
 def test_api_endpoint(endpoint, method="GET", data=None, params=None, expected_status=200):
     """Test an API endpoint and return the response."""
