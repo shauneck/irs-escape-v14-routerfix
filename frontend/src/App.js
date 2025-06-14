@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Link, useNavigate, useLocation 
 import './App.css';
 import BuildEscapePlan from './components/BuildEscapePlan';
 import EntityBuilder from './components/EntityBuilder';
-import Quinn from "./components/Quinn";
+// Quinn AI component removed per user requirements
 
 const API_BASE_URL = process.env.REACT_APP_BACKEND_URL;
 
