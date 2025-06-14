@@ -261,7 +261,7 @@ def test_tools_endpoint():
 def test_user_xp_endpoint():
     """Test the user XP endpoint."""
     print("\n==== Testing User XP Endpoint ====")
-    user_xp = test_api_endpoint("users/xp/default_user")
+    user_xp = test_api_endpoint("users/xp")
     
     if not user_xp:
         return False
@@ -269,36 +269,56 @@ def test_user_xp_endpoint():
     print(f"✅ Successfully retrieved user XP: {user_xp['total_xp']} total XP")
     
     # Test glossary XP award
-    if user_xp and "glossary" in test_api_endpoint(""):
-        # Get a glossary term ID to use
-        terms = test_api_endpoint("glossary")
-        if terms:
-            term_id = terms[0]["id"]
-            
-            # Award XP for viewing the term
-            xp_data = {
-                "user_id": "default_user",
-                "term_id": term_id
-            }
-            
-            xp_result = test_api_endpoint("users/xp/glossary", method="POST", data=xp_data)
-            
-            if not xp_result:
-                return False
-            
-            print(f"✅ Successfully awarded XP for viewing glossary term: {xp_result['xp_earned']} XP")
-            
-            # Check that viewing the same term again doesn't award XP
-            xp_result_2 = test_api_endpoint("users/xp/glossary", method="POST", data=xp_data)
-            
-            if not xp_result_2:
-                return False
-            
-            if xp_result_2["status"] == "already_viewed" and xp_result_2["xp_earned"] == 0:
-                print("✅ Correctly did not award XP for viewing the same term again")
-            else:
-                print("❌ Incorrectly awarded XP for viewing the same term again")
-                return False
+    terms = test_api_endpoint("glossary")
+    if not terms or len(terms) == 0:
+        print("❌ No glossary terms available for XP testing")
+        return False
+    
+    # Test awarding XP for multiple terms
+    test_terms = terms[:3]  # Test with first 3 terms
+    
+    for i, term in enumerate(test_terms):
+        term_id = term["id"]
+        
+        # Award XP for viewing the term
+        xp_data = {
+            "user_id": "default_user",
+            "term_id": term_id
+        }
+        
+        xp_result = test_api_endpoint("users/xp/glossary", method="POST", data=xp_data)
+        
+        if not xp_result:
+            print(f"❌ Failed to award XP for term: {term['term']}")
+            return False
+        
+        if xp_result["status"] == "success":
+            print(f"✅ Successfully awarded {xp_result['xp_earned']} XP for viewing glossary term: {term['term']}")
+        elif xp_result["status"] == "already_viewed":
+            print(f"✅ Term '{term['term']}' already viewed, no XP awarded (as expected)")
+        else:
+            print(f"❌ Unexpected status for XP award: {xp_result['status']}")
+            return False
+        
+        # Check that viewing the same term again doesn't award XP
+        xp_result_2 = test_api_endpoint("users/xp/glossary", method="POST", data=xp_data)
+        
+        if not xp_result_2:
+            print(f"❌ Failed on second view of term: {term['term']}")
+            return False
+        
+        if xp_result_2["status"] == "already_viewed" and xp_result_2["xp_earned"] == 0:
+            print(f"✅ Correctly did not award XP for viewing the same term again: {term['term']}")
+        else:
+            print(f"❌ Incorrectly awarded XP for viewing the same term again: {term['term']}")
+            return False
+    
+    # Verify XP was updated in user profile
+    updated_xp = test_api_endpoint("users/xp")
+    if not updated_xp:
+        return False
+    
+    print(f"✅ Updated user XP: {updated_xp['total_xp']} total XP, {updated_xp['glossary_xp']} glossary XP")
     
     return True
 
