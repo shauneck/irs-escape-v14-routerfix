@@ -374,11 +374,30 @@ def test_data_initialization():
     
     # Verify glossary terms were created
     terms = test_api_endpoint("glossary")
-    if not terms or len(terms) != 61:
-        print(f"❌ Expected exactly 61 glossary terms after initialization, found {len(terms) if terms else 0}")
+    if not terms:
+        print("❌ No glossary terms found after initialization")
         return False
     
     print(f"✅ Found {len(terms)} glossary terms after initialization")
+    
+    # Run the verify_glossary.py script to ensure we have 61 terms with enhanced formatting
+    import subprocess
+    print("\n🔧 Running glossary verification and enhancement script...")
+    result = subprocess.run(["python", "/app/verify_glossary.py"], capture_output=True, text=True)
+    
+    if result.returncode != 0:
+        print(f"❌ Glossary verification script failed: {result.stderr}")
+        return False
+    
+    print("✅ Glossary verification and enhancement completed successfully")
+    
+    # Verify we now have 61 terms
+    terms = test_api_endpoint("glossary")
+    if not terms or len(terms) != 61:
+        print(f"❌ Expected exactly 61 glossary terms after enhancement, found {len(terms) if terms else 0}")
+        return False
+    
+    print(f"✅ Found exactly 61 glossary terms after enhancement")
     
     # Verify tools were created
     tools = test_api_endpoint("tools")
