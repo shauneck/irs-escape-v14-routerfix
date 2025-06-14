@@ -375,8 +375,8 @@ def test_data_initialization():
     
     # Verify glossary terms were created
     terms = test_api_endpoint("glossary")
-    if not terms or len(terms) < 53:
-        print(f"❌ Expected at least 53 glossary terms after initialization, found {len(terms) if terms else 0}")
+    if not terms or len(terms) != 61:
+        print(f"❌ Expected exactly 61 glossary terms after initialization, found {len(terms) if terms else 0}")
         return False
     
     print(f"✅ Found {len(terms)} glossary terms after initialization")
