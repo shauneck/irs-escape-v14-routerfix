@@ -46,7 +46,7 @@ def test_api_endpoint(endpoint, method="GET", data=None, params=None, expected_s
             return None
         
         print(f"✅ Status: {response.status_code}")
-        return response.json()
+        return response.json() if response.status_code != 404 else None
     except Exception as e:
         print(f"❌ Error: {e}")
         return None
@@ -322,6 +322,68 @@ def test_user_xp_endpoint():
     
     return True
 
+def test_data_initialization():
+    """Test the data initialization endpoint."""
+    print("\n==== Testing Data Initialization Endpoint ====")
+    
+    # Initialize data
+    init_result = test_api_endpoint("initialize-data", method="POST", data={})
+    
+    if not init_result:
+        return False
+    
+    print("✅ Successfully initialized data")
+    
+    # Verify courses were created
+    courses = test_api_endpoint("courses")
+    if not courses or len(courses) != 3:
+        print(f"❌ Expected 3 courses after initialization, found {len(courses) if courses else 0}")
+        return False
+    
+    print(f"✅ Found {len(courses)} courses after initialization")
+    
+    # Verify glossary terms were created
+    terms = test_api_endpoint("glossary")
+    if not terms or len(terms) < 53:
+        print(f"❌ Expected at least 53 glossary terms after initialization, found {len(terms) if terms else 0}")
+        return False
+    
+    print(f"✅ Found {len(terms)} glossary terms after initialization")
+    
+    # Verify tools were created
+    tools = test_api_endpoint("tools")
+    if not tools:
+        print("❌ No tools found after initialization")
+        return False
+    
+    print(f"✅ Found {len(tools)} tools after initialization")
+    
+    return True
+
+def test_quinn_ai_removal():
+    """Test that Quinn AI endpoints have been removed."""
+    print("\n==== Testing Quinn AI Removal ====")
+    
+    # List of Quinn AI endpoints that should return 404
+    quinn_endpoints = [
+        "quinn/chat",
+        "quinn/generate",
+        "quinn/analyze",
+        "quinn/search",
+        "quinn/status"
+    ]
+    
+    all_removed = True
+    for endpoint in quinn_endpoints:
+        response = test_api_endpoint(endpoint, expected_status=404)
+        if response is not None:
+            print(f"❌ Quinn AI endpoint still exists: {endpoint}")
+            all_removed = False
+        else:
+            print(f"✅ Quinn AI endpoint properly removed: {endpoint}")
+    
+    return all_removed
+
 def run_all_tests():
     """Run all API tests."""
     print("\n🚀 Starting IRS Escape Plan Backend API Tests\n")
@@ -337,7 +399,9 @@ def run_all_tests():
         test_courses_endpoint,
         test_glossary_endpoint,
         test_tools_endpoint,
-        test_user_xp_endpoint
+        test_user_xp_endpoint,
+        test_data_initialization,
+        test_quinn_ai_removal
     ]
     
     results = []
