@@ -497,20 +497,6 @@ const ModuleViewer = ({ module, course, onBack }) => {
           </div>
         </div>
 
-        {/* Module Content with Glossary Highlighting */}
-        <div className="mt-8">
-          <div className="bg-white rounded-lg shadow-lg p-8">
-            <h2 className="text-2xl font-bold text-navy-900 mb-6">Module Content</h2>
-            <div className="prose prose-lg max-w-none">
-              <GlossaryTermHighlighter 
-                content={module.content}
-                glossaryTerms={glossaryTerms}
-                onTermClick={handleGlossaryTermClick}
-              />
-            </div>
-          </div>
-        </div>
-
         {/* Glossary Term Modal */}
         {selectedGlossaryTerm && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
