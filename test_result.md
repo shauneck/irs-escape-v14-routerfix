@@ -133,7 +133,7 @@ backend:
         comment: "Database initialized successfully. Confirmed 3 courses (6, 10, 9 modules), 53 glossary terms loaded, and tools data initialized. Ready for frontend testing."
       - working: true
         agent: "testing"
-        comment: "Verified data initialization endpoint. Successfully initializes 3 courses with correct module counts, 53 glossary terms, and 3 tools. All course content is substantial and complete, not placeholder text."
+        comment: "Verified data initialization endpoint. Successfully initializes 3 courses with correct module counts, 61 glossary terms with enhanced formatting, and 3 tools. All course content is substantial and complete, not placeholder text."
 
 frontend:
   - task: "Restore Complete Frontend from Source Repository"
