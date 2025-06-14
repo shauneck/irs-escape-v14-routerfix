@@ -9,10 +9,17 @@ focusing on the core functionality and enhanced glossary terms.
 import requests
 import json
 import sys
+import os
 from pprint import pprint
 
-# Get the backend URL from the frontend .env file
-BACKEND_URL = "https://121ca5b5-ce3d-4bb1-8b1a-0c44a264bf92.preview.emergentagent.com/api"
+# Read the backend URL from the frontend .env file
+with open('/app/frontend/.env', 'r') as f:
+    for line in f:
+        if line.startswith('REACT_APP_BACKEND_URL='):
+            BACKEND_URL = line.strip().split('=')[1] + '/api'
+            break
+
+print(f"Using backend URL: {BACKEND_URL}")
 
 def test_api_endpoint(endpoint, method="GET", data=None, params=None, expected_status=200):
     """Test an API endpoint and return the response."""
